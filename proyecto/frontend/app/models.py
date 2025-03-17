@@ -9,14 +9,14 @@ class User(UserMixin):
         self.id = id
         self.name = name
         self.email = email
-        self.password = hashlib.sha256(password).hexdigest()
+        self.password = hashlib.sha256(password.encode('utf-8')).hexdigest()
         self.is_admin = is_admin
 
     def set_password(self, password):
-        self.password = hashlib.sha256(password).hexdigest()
+        self.password = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     def check_password(self, password):
-        return self.password == hashlib.sha256(password).hexdigest()
+        return self.password == hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     def get_user(email):
         for user in users:
