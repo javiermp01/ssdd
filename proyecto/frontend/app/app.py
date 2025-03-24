@@ -7,7 +7,7 @@ import os
 from models import users, User
 
 # Login
-from forms import LoginForm, SignupForm
+from forms import LoginForm, SignupForm, SettingsForm
 
 app = Flask(__name__, static_url_path='')
 login_manager = LoginManager()
@@ -73,6 +73,45 @@ def recent():
 @login_required
 def profile():
     return render_template('profile.html')
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    form = SettingsForm()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        user = current_user  # Usuario autenticado
+
+        # Buscar el usuario en `users` y actualizar solo los datos modificados
+        for i, u in enumerate(users):
+            if u.id == user.id:
+                if form.new_name.data.strip():  # Si el campo no está vacío, actualizar
+                    users[i].name = form.new_name.data.strip()
+                    user.name = form.new_name.data.strip()
+                if form.new_email.data.strip():
+                    users[i].email = form.new_email.data.strip()
+                    user.email = form.new_email.data.strip()
+                if form.new_password.data.strip():
+                    users[i].set_password(form.new_password.data.strip())
+                    user.set_password(form.new_password.data.strip())
+                break
+
+        flash('Settings updated successfully!', 'success')
+        return redirect(url_for('settings'))
+
+    return render_template('settings.html', form=form)
+
+
+
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    global users
+    users = [u for u in users if u.email != current_user.email]  # Elimina el usuario
+    logout_user()
+    flash('Your account has been deleted.', 'danger')
+    return redirect(url_for('index'))
+
 
 @app.route('/logout')
 @login_required

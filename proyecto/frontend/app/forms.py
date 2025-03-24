@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, BooleanField, FileField, SubmitField)
-from wtforms.validators import InputRequired, Length, Email, EqualTo
+from wtforms.validators import InputRequired, Length, Email, EqualTo, Optional
 
 class LoginForm(FlaskForm):
     email = StringField('email', validators=[Email()])
@@ -15,4 +15,12 @@ class SignupForm(FlaskForm):
         InputRequired(), EqualTo('password', message='Passwords must match')
     ])
     submit = SubmitField('Sign Up')
+
+class SettingsForm(FlaskForm):
+    new_name = StringField('New Name', validators=[Optional(), Length(min=2, max=50)])
+    new_email = StringField('New Email', validators=[Optional(), Email()])
+    new_password = PasswordField('New Password', validators=[Optional(), Length(min=6)])
+    submit = SubmitField('Update Settings')
+    delete_account = SubmitField('Delete Account', render_kw={"class": "btn btn-danger"})
+
 
