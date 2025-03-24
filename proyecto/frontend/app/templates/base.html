@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flask Auth Example</title>
+    <title>LlamaChat</title>
     <link href="/static/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
           crossorigin="anonymous" />
@@ -45,11 +45,12 @@
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Inicio</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Enlace 1</a>
-          </li>
 
           {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('recent')}}">Recientes</a>
+          </li>
+
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
           </li>

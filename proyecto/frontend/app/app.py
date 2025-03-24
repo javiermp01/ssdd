@@ -64,6 +64,11 @@ def login():
 
     return render_template('login.html', form=form, error=error)
 
+@app.route('/recent')
+@login_required
+def recent():
+    return render_template('recent.html')
+
 @app.route('/profile')
 @login_required
 def profile():

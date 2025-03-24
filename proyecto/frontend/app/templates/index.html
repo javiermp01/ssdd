@@ -2,9 +2,17 @@
 
 {% block content %}
 <h1 class="mt-5">
-    Flask Login Example ASDFADS
+    Bienvenido a la página de inicio
 </h1>
 <p class="lead">
     Create a Login page using Flask :)
 </p>
+
+{% if current_user.is_authenticated %}
+<p class="lead">
+    You are logged in as {{ current_user.name }}
+</p>
+
+{% endif %}
+
 {% endblock %}
