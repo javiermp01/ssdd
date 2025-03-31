@@ -30,19 +30,22 @@ class User(UserMixin):
         return '<User {}>'.format(self.email)
 
 class Conversation:
-    def __init__(self, id, user_id, user_message, bot_response):
+    def __init__(self, id, user_id):
         self.id = id
         self.user_id = user_id
-        self.user_message = user_message
-        #self.messages[] 
-        self.bot_response = bot_response
+        self.messages = []
         self.timestamp = datetime.now()
     
     def __repr__(self):
-        return f'<Conversation {self.user_id} - {self.timestamp}'
+        return f'<Conversation {self.user_id} - {self.timestamp}>'
 
-#class Message:
-    #self.conversation_id = conversation_id
+    def add_message(self, user_message, bot_response):
+        self.messages.append(Message(user_message, bot_response))
+
+class Message:
+    def __init__(self, user_message, bot_response):
+        self.user_message = user_message
+        self.bot_response = bot_response
 
     """
     id = db.Column(db.Integer, primary_key=True)

@@ -1,8 +1,9 @@
-from flask import Flask, render_template, send_from_directory, url_for, request, redirect, flash
+from flask import Flask, render_template, send_from_directory, url_for, request, redirect, flash, session, jsonify
 from flask_login import LoginManager, login_manager, current_user, login_user, login_required, logout_user
 import requests
 import os
 import uuid
+import logging
 
 # Usuarios
 from models import users, User, Conversation, conversations
@@ -64,12 +65,12 @@ def login():
             return redirect(url_for('index'))
 
     return render_template('login.html', form=form, error=error)
-
+"""
 @app.route('/recent')
 @login_required
 def recent():
     return render_template('recent.html')
-
+"""
 @app.route('/profile')
 @login_required
 def profile():
@@ -130,39 +131,41 @@ def load_user(user_id):
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required
 def prompt():
+    logging.debug("Post")
+    conversation = None
+    if 'conversation_id' not in session:
+        # Si no hay conversación activa, crear nueva 
+        conversation_id = str(uuid.uuid4())
+        conversation = Conversation(conversation_id, current_user.id)
+        conversations.append(conversation)
+        session['conversation_id'] = conversation_id
+        logging.debug(f"Created. ID: {conversation_id}- Session: {session.get('conversation_id')}")
+    else:
+        # Recuperar la conversación activa
+        conversation = next((c for c in conversations if c.id == session['conversation_id']), None)
+        logging.debug(f"Not Created. ID:- Session: {session.get('conversation_id')}")
+    
     if request.method == 'POST':
         user_message = request.json.get('message')
         if not user_message:
-            return jsonify({'error': 'Mensaje vacío'}), 400
+            flash('Empty message.', 'danger')
+            return redirect(url_for('prompt'))
 
         bot_response = f"Respuesta a: {user_message}"  
 
-        # Obtener la conversación activa del usuario
-        conversation = next((c for c in conversations if c.user_id == current_user.id and not c.ended), None)
-        
-        if not conversation:
-            # Crear nueva conversación
-            conversation_id = str(uuid.uuid4())
-            conversation = Conversation(conversation_id, current_user.id, user_message, bot_response)
-            conversation.ended = False
-            conversations.append(conversation)
-        else:
-            # Agregar mensaje a la conversación existente
-            conversation.user_message += f"\n{user_message}"
-            conversation.bot_response += f"\n{bot_response}"
+        # Agregar mensaje
+        conversation.add_message(user_message, bot_response)
 
         return jsonify({'response': bot_response, 'conversation_id': conversation.id})
 
     return render_template('prompt.html')
-
+"""
 @app.route('/end_conversation', methods=['POST'])
 @login_required
 def end_conversation():
-    conversation = next((c for c in conversations if c.user_id == current_user.id and not c.ended), None)
-    if conversation:
-        conversation.ended = True  # Marcar la conversación como finalizada
-    return redirect(url_for('logs'))
-
+    session.pop('conversation_id', None)
+    return redirect(url_for('prompt'))
+"""
 @app.route('/logs')
 @login_required
 def logs():
