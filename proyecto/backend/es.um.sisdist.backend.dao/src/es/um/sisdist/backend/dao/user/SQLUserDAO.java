@@ -45,8 +45,17 @@ public class SQLUserDAO implements IUserDAO {
 
     @Override
     public Optional<User> getUserById(String id) {
-        // TODO Auto-generated method stub
-        return null;
+        PreparedStatement stm;
+        try {
+            stm = conn.get().prepareStatement("SELECT * from users WHERE id = ?");
+            stm.setString(1, id);
+            ResultSet result = stm.executeQuery();
+            if (result.next())
+                return createUser(result);
+        } catch (SQLException e) {
+            // Fallthrough
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -74,24 +83,25 @@ public class SQLUserDAO implements IUserDAO {
                 return Optional.empty(); // El correo ya está en uso
             }
 
-            // Insertar el nuevo usuario en la base de datos
-            String sql = "INSERT INTO users (name, email, password_hash, visits, token) VALUES (?, ?, ?, ?, ?)";
+            // Generar un id único para el usuario (por ejemplo, un UUID o un hash del
+            // email)
+            String userId = generateUniqueId(email);
+
+            // Insertar el nuevo usuario en la base de datos en el orden correcto
+            String sql = "INSERT INTO users (id, email, password_hash, name, token, visits) VALUES (?, ?, ?, ?, ?, ?)";
             stm = conn.get().prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
-            stm.setString(1, name);
-            stm.setString(2, email);
-            stm.setString(3, passwordHash); // Guardamos la contraseña hasheada
-            stm.setInt(4, 0); // Visitas iniciales en 0
-            stm.setString(5, ""); // Token vacío, puedes actualizarlo después si es necesario
+            stm.setString(1, userId); // id generado
+            stm.setString(2, email); // correo electrónico
+            stm.setString(3, passwordHash); // hash de la contraseña
+            stm.setString(4, name); // nombre
+            stm.setString(5, ""); // token vacío
+            stm.setInt(6, 0); // visitas iniciales en 0
 
             int rowsAffected = stm.executeUpdate(); // Ejecuta la inserción
 
             if (rowsAffected > 0) {
                 // Obtener el ID generado automáticamente para el nuevo usuario
-                ResultSet generatedKeys = stm.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    String userId = generatedKeys.getString(1); // Obtener el ID generado
-                    return getUserById(userId); // Devolver el nuevo usuario
-                }
+                return getUserById(userId); // Devolver el nuevo usuario con el ID generado
             }
         } catch (SQLException e) {
             e.printStackTrace(); // Manejo de errores
@@ -110,5 +120,10 @@ public class SQLUserDAO implements IUserDAO {
         } catch (SQLException e) {
             return Optional.empty();
         }
+    }
+
+    // Método para generar un id único (por ejemplo, usando un hash del correo)
+    private String generateUniqueId(String email) {
+        return "user_" + email.hashCode(); // O puedes usar UUID.randomUUID().toString()
     }
 }

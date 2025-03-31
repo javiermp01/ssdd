@@ -41,7 +41,7 @@ def signup():
         }
 
         try:
-            response = requests.post("localhost:8080/Service/registerUser", json=payload)
+            response = requests.post("http://localhost:8080/Service/signup", json=payload)
             if response.status_code == 201:
                 flash('Account created successfully! You can log in now.', 'success')
                 return redirect(url_for('login'))
