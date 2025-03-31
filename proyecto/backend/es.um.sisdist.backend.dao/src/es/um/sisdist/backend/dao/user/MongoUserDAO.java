@@ -67,4 +67,16 @@ public class MongoUserDAO implements IUserDAO
         Optional<User> user = Optional.ofNullable(collection.get().find(eq("email", id)).first());
         return user;
     }
+
+    @Override
+    public Optional<User> registerUser(String name, String email, String passwordHash)
+    {
+        // TODO Auto-generated method stub
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        //user.setPasswordHash(passwordHash);
+        collection.get().insertOne(user);
+        return Optional.of(user);
+    }
 }

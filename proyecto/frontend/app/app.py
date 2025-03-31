@@ -32,20 +32,39 @@ def index():
 def signup():
     form = SignupForm()
     if request.method == 'POST' and form.validate_on_submit():
-        existing_user = next((u for u in users if u.email == form.email.data), None)
-        if existing_user:
-            flash('Email already registered.', 'danger')
+        # Enviar solicitud al backend para registrar el usuario
+        payload = {
+            'name': form.name.data,
+            'email': form.email.data,
+            'password': form.password.data  # Asegúrate de que la contraseña se maneje de manera segura
+        }
+
+        try:
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            response = requests.post("http://backend-rest:8080/Service/signup", json=payload, headers=headers)
+            if response.status_code == 201:
+                flash('Account created successfully! You can log in now.', 'success')
+                user_data = response.json()
+                user = User(user_data["id"], user_data["name"],
+                    user_data["email"], form.password.data
+                )
+                users.append(user)
+                return redirect(url_for('login'))
+            elif response.status_code == 400:
+                flash('Email already registered.', 'danger')
+                return redirect(url_for('signup'))
+            else:
+                flash('Something went wrong. Please try again later.', 'danger')
+                return redirect(url_for('signup'))
+        except requests.exceptions.RequestException as e:
+            flash(f"Error: {e}", 'danger')
             return redirect(url_for('signup'))
-
-        new_user = User(len(users) + 1, form.name.data, form.email.data, form.password.data)
-        users.append(new_user)  # Almacenamos el usuario en la lista temporal
-
-        flash('Account created successfully! You can log in now.', 'success')
-        return redirect(url_for('login'))
 
     return render_template('signup.html', form=form)
 
-@app.route('/login', methods=['GET', 'POST'])
+"""@app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -63,6 +82,51 @@ def login():
         else:
             login_user(user, remember=form.remember_me.data)
             return redirect(url_for('index'))
+
+    return render_template('login.html', form=form, error=error)"""
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    error = None
+    form = LoginForm(request.form if request.method == 'POST' else None)
+
+    if request.method == "POST" and form.validate():
+        # Preparar la solicitud al backend para validar el login
+        payload = {
+            'email': form.email.data,
+            'password': form.password.data
+        }
+
+        try:
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            # Hacer una solicitud POST al endpoint checkLogin del backend
+            response = requests.post("http://backend-rest:8080/Service/checkLogin", json=payload, headers=headers)
+
+            if response.status_code == 200:  # Login exitoso
+                user_data = response.json()  # Recibir datos del usuario en formato JSON
+
+                # Crear un objeto usuario aquí (esto depende de tu implementación en Flask-Login)
+                user = User(user_data["id"], user_data["name"],
+                    user_data["email"], form.password.data
+                )
+                users.append(user)
+
+                # Loguear al usuario
+                login_user(user, remember=form.remember_me.data)
+                return redirect(url_for('index'))
+
+            elif response.status_code == 403:  # Si el login falla
+                error = 'Invalid Credentials. Please try again.'
+            else:
+                error = 'Something went wrong. Please try again later.'
+        
+        except requests.exceptions.RequestException as e:
+            error = f"Error: {e}"
 
     return render_template('login.html', form=form, error=error)
 """
@@ -124,7 +188,7 @@ def logout():
 @login_manager.user_loader
 def load_user(user_id):
     for user in users:
-        if user.id == int(user_id):
+        if str(user.id) == user_id:
             return user
     return None
 
