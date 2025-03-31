@@ -9,6 +9,9 @@ from models import users, User
 # Login
 from forms import LoginForm, SignupForm, SettingsForm
 
+# BBDD
+#from config import BACKEND_URL
+
 app = Flask(__name__, static_url_path='')
 login_manager = LoginManager()
 login_manager.init_app(app) # Para mantener la sesión
@@ -30,16 +33,27 @@ def index():
 def signup():
     form = SignupForm()
     if request.method == 'POST' and form.validate_on_submit():
-        existing_user = next((u for u in users if u.email == form.email.data), None)
-        if existing_user:
-            flash('Email already registered.', 'danger')
+        # Enviar solicitud al backend para registrar el usuario
+        payload = {
+            'name': form.name.data,
+            'email': form.email.data,
+            'password': form.password.data  # Asegúrate de que la contraseña se maneje de manera segura
+        }
+
+        try:
+            response = requests.post("localhost:8080/Service/registerUser", json=payload)
+            if response.status_code == 201:
+                flash('Account created successfully! You can log in now.', 'success')
+                return redirect(url_for('login'))
+            elif response.status_code == 400:
+                flash('Email already registered.', 'danger')
+                return redirect(url_for('signup'))
+            else:
+                flash('Something went wrong. Please try again later.', 'danger')
+                return redirect(url_for('signup'))
+        except requests.exceptions.RequestException as e:
+            flash(f"Error: {e}", 'danger')
             return redirect(url_for('signup'))
-
-        new_user = User(len(users) + 1, form.name.data, form.email.data, form.password.data)
-        users.append(new_user)  # Almacenamos el usuario en la lista temporal
-
-        flash('Account created successfully! You can log in now.', 'success')
-        return redirect(url_for('login'))
 
     return render_template('signup.html', form=form)
 

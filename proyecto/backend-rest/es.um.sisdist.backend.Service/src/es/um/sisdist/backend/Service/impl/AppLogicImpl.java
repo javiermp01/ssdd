@@ -99,4 +99,19 @@ public class AppLogicImpl
 
         return Optional.empty();
     }
+
+    public Optional<User> registerUser(String name, String email, String password) {
+        // Verificar si el correo electrónico ya está registrado
+        /**Optional<User> existingUser = dao.getUserByEmail(email);
+        if (existingUser.isPresent()) {
+            // El correo ya está en uso
+            return Optional.empty();
+        }*/ // Comentado porque la funcion registerUser del dao ya lo comprueba y devuelve empty si existe
+    
+        // En caso de que no exista, crear un nuevo usuario
+        // Almacenar el nuevo usuario en la base de datos
+        Optional<User> newUser = dao.registerUser(name, email, password);
+    
+        return newUser;
+    }
 }
