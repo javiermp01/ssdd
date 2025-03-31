@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Historial de Conversaciones</h1>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Fecha</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for convo in conversations %}
+    <tr>
+      <td>{{ convo.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ convo.user_message }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

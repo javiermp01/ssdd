@@ -48,7 +48,11 @@
 
             {% if current_user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('recent')}}">Recientes</a>
+              <a class="nav-link" href="{{ url_for('logs')}}">Recientes</a>
+            </li>
+            
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('prompt')}}">NuevoChat</a>
             </li>
 
             <li class="nav-item">

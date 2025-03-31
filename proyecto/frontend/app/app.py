@@ -2,9 +2,10 @@ from flask import Flask, render_template, send_from_directory, url_for, request,
 from flask_login import LoginManager, login_manager, current_user, login_user, login_required, logout_user
 import requests
 import os
+import uuid
 
 # Usuarios
-from models import users, User
+from models import users, User, Conversation, conversations
 
 # Login
 from forms import LoginForm, SignupForm, SettingsForm
@@ -125,6 +126,52 @@ def load_user(user_id):
         if user.id == int(user_id):
             return user
     return None
+
+@app.route('/prompt', methods=['GET', 'POST'])
+@login_required
+def prompt():
+    if request.method == 'POST':
+        user_message = request.json.get('message')
+        if not user_message:
+            return jsonify({'error': 'Mensaje vacío'}), 400
+
+        bot_response = f"Respuesta a: {user_message}"  
+
+        # Obtener la conversación activa del usuario
+        conversation = next((c for c in conversations if c.user_id == current_user.id and not c.ended), None)
+        
+        if not conversation:
+            # Crear nueva conversación
+            conversation_id = str(uuid.uuid4())
+            conversation = Conversation(conversation_id, current_user.id, user_message, bot_response)
+            conversation.ended = False
+            conversations.append(conversation)
+        else:
+            # Agregar mensaje a la conversación existente
+            conversation.user_message += f"\n{user_message}"
+            conversation.bot_response += f"\n{bot_response}"
+
+        return jsonify({'response': bot_response, 'conversation_id': conversation.id})
+
+    return render_template('prompt.html')
+
+@app.route('/end_conversation', methods=['POST'])
+@login_required
+def end_conversation():
+    conversation = next((c for c in conversations if c.user_id == current_user.id and not c.ended), None)
+    if conversation:
+        conversation.ended = True  # Marcar la conversación como finalizada
+    return redirect(url_for('logs'))
+
+@app.route('/logs')
+@login_required
+def logs():
+    #conversations = Conversation.query.filter_by(user_id=current_user.id).order_by(Conversation.timestamp.desc()).all()
+    #return render_template('logs.html', conversations=conversations)
+    user_conversations = [c for c in conversations if c.user_id == current_user.id]
+    user_conversations.sort(key=lambda c: c.timestamp, reverse=True)
+    return render_template('logs.html', conversations=user_conversations)
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5010)))

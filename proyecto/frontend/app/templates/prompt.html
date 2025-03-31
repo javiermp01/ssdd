@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block custom_style %}
+  <link href="/static/chat.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+  <h1>Chat</h1>
+  <div id="chat-box"></div>
+  <div class="input-area">
+    <input type="text" id="user-input" placeholder="Escribe un mensaje..." autocomplete="off">
+    <button id="send-btn">Enviar</button>
+  </div>
+</div>
+
+<script>
+  document.getElementById('send-btn').addEventListener('click', sendMessage);
+  document.getElementById('user-input').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  function sendMessage() {
+    let userInput = document.getElementById('user-input').value.trim();
+    if (userInput === "") return;
+
+    let chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML += `<div class="message user"><strong>Tú:</strong> ${userInput}</div>`;
+
+    fetch('/prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: userInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+      chatBox.innerHTML += `<div class="message bot"><strong>Bot:</strong> ${data.response}</div>`;
+      document.getElementById('user-input').value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+    })
+    .catch(error => console.error('Error:', error));
+  }
+</script>
+{% endblock %}

@@ -1,7 +1,9 @@
 from flask_login import UserMixin
 import hashlib
+from datetime import datetime
 
 users = []
+conversations = []
 
 class User(UserMixin):
 
@@ -26,3 +28,26 @@ class User(UserMixin):
 
     def __repr__(self):
         return '<User {}>'.format(self.email)
+
+class Conversation:
+    def __init__(self, id, user_id, user_message, bot_response):
+        self.id = id
+        self.user_id = user_id
+        self.user_message = user_message
+        #self.messages[] 
+        self.bot_response = bot_response
+        self.timestamp = datetime.now()
+    
+    def __repr__(self):
+        return f'<Conversation {self.user_id} - {self.timestamp}'
+
+#class Message:
+    #self.conversation_id = conversation_id
+
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_message = db.Column(db.Text, nullable=False)
+    bot_response = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+    """
