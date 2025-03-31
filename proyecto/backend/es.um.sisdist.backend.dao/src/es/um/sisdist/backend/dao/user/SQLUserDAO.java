@@ -83,14 +83,13 @@ public class SQLUserDAO implements IUserDAO {
                 return Optional.empty(); // El correo ya está en uso
             }
 
-            // Generar un id único para el usuario (por ejemplo, un UUID o un hash del
-            // email)
-            String userId = generateUniqueId(email);
+            // Extraer el 'id' del correo electrónico (todo lo que está antes del '@')
+            String id = email.split("@")[0];
 
             // Insertar el nuevo usuario en la base de datos en el orden correcto
             String sql = "INSERT INTO users (id, email, password_hash, name, token, visits) VALUES (?, ?, ?, ?, ?, ?)";
             stm = conn.get().prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
-            stm.setString(1, userId); // id generado
+            stm.setString(1, id); // id generado
             stm.setString(2, email); // correo electrónico
             stm.setString(3, passwordHash); // hash de la contraseña
             stm.setString(4, name); // nombre
@@ -101,7 +100,7 @@ public class SQLUserDAO implements IUserDAO {
 
             if (rowsAffected > 0) {
                 // Obtener el ID generado automáticamente para el nuevo usuario
-                return getUserById(userId); // Devolver el nuevo usuario con el ID generado
+                return getUserByEmail(email); // Devolver el nuevo usuario con el ID generado
             }
         } catch (SQLException e) {
             e.printStackTrace(); // Manejo de errores
@@ -120,10 +119,5 @@ public class SQLUserDAO implements IUserDAO {
         } catch (SQLException e) {
             return Optional.empty();
         }
-    }
-
-    // Método para generar un id único (por ejemplo, usando un hash del correo)
-    private String generateUniqueId(String email) {
-        return "user_" + email.hashCode(); // O puedes usar UUID.randomUUID().toString()
     }
 }
