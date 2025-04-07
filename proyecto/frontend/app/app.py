@@ -196,18 +196,28 @@ def load_user(user_id):
 @login_required
 def prompt():
     logging.debug("Post")
-    conversation = None
-    if 'conversation_id' not in session:
-        # Si no hay conversación activa, crear nueva 
-        conversation_id = str(uuid.uuid4())
-        conversation = Conversation(conversation_id, current_user.id)
-        conversations.append(conversation)
-        session['conversation_id'] = conversation_id
-        logging.debug(f"Created. ID: {conversation_id}- Session: {session.get('conversation_id')}")
+    
+    # Si hay un `conversation_id` en la URL, se recupera la conversación correspondiente
+    conversation_id = request.args.get('conversation_id')
+    
+    if conversation_id:
+        # Recuperar la conversación activa usando el `conversation_id` de la URL
+        conversation = next((c for c in conversations if c.id == conversation_id), None)
+        if conversation is None:
+            flash('Conversación no encontrada.', 'danger')
+            return redirect(url_for('index'))  # O a donde prefieras redirigir
+        logging.debug(f"Continuing conversation. ID: {conversation_id}")
     else:
-        # Recuperar la conversación activa
-        conversation = next((c for c in conversations if c.id == session['conversation_id']), None)
-        logging.debug(f"Not Created. ID:- Session: {session.get('conversation_id')}")
+        # Si no hay `conversation_id`, crear una nueva conversación
+        if 'conversation_id' not in session:
+            conversation_id = str(uuid.uuid4())
+            conversation = Conversation(conversation_id, current_user.id)
+            conversations.append(conversation)
+            session['conversation_id'] = conversation_id
+            logging.debug(f"Created new conversation. ID: {conversation_id}")
+        else:
+            conversation = next((c for c in conversations if c.id == session['conversation_id']), None)
+            logging.debug(f"Existing conversation. ID: {session.get('conversation_id')}")
     
     if request.method == 'POST':
         user_message = request.json.get('message')
@@ -217,19 +227,21 @@ def prompt():
 
         bot_response = f"Respuesta a: {user_message}"  
 
-        # Agregar mensaje
+        # Agregar mensaje a la conversación
         conversation.add_message(user_message, bot_response)
+
+        logging.debug(f"User: {user_message}, Bot: {bot_response}")
 
         return jsonify({'response': bot_response, 'conversation_id': conversation.id})
 
-    return render_template('prompt.html')
-"""
+    return render_template('prompt.html', conversation=conversation)
+
 @app.route('/end_conversation', methods=['POST'])
 @login_required
 def end_conversation():
     session.pop('conversation_id', None)
     return redirect(url_for('prompt'))
-"""
+
 @app.route('/logs')
 @login_required
 def logs():

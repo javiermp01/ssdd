@@ -47,10 +47,12 @@ class Message:
         self.user_message = user_message
         self.bot_response = bot_response
 
-    """
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_message = db.Column(db.Text, nullable=False)
-    bot_response = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
-    """
+    def __repr__(self):
+        return f"Message {self.id}, Conversation {self.conversation_id}"
+
+# Función para crear una conversación
+def create_conversation(id, user_id):
+    c = Conversation(id, user_id)
+    conversations.append(c)
+    return c
+

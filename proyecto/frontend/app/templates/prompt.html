@@ -43,11 +43,12 @@
 
   // Añadir evento beforeunload para terminar la conversación cuando el usuario abandona la página
   window.addEventListener('beforeunload', function() {
-    fetch('{{ url_for("end_conversation") }}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})  // No necesitamos datos adicionales, solo la solicitud para terminar la conversación
-    });
+    navigator.sendBeacon('{{ url_for("end_conversation") }}', JSON.stringify({}));
+    //fetch('{{ url_for("end_conversation") }}', {
+      //method: 'POST',
+      //headers: { 'Content-Type': 'application/json' },
+      //body: JSON.stringify({})  // No necesitamos datos adicionales, solo la solicitud para terminar la conversación
+    //});
   });
 </script>
 {% endblock %}
