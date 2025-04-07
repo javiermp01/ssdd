@@ -11,4 +11,6 @@ public interface IUserDAO
     public Optional<User> getUserByEmail(String id);
 
     public Optional<User> registerUser(String name, String email, String passwordHash);
+
+    public void updateUser(String id, User user);
 }

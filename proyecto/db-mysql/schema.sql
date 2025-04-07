@@ -2,26 +2,25 @@ CREATE SCHEMA IF NOT EXISTS ssdd;
 USE ssdd;
 
 CREATE TABLE IF NOT EXISTS users(
-	id varchar(50),
+    id INT AUTO_INCREMENT,
     email varchar(50),
-	password_hash text,
+    password_hash text,
     name text,
-	token text,
-	visits int,
-	PRIMARY KEY(id)
+    token text,
+    visits int,
+    PRIMARY KEY(id)
 );
 
 -- Para búsquedas con email
 CREATE INDEX user_email_idx ON users (email);
 
 -- CUIDADO!! AÑADO UN USUARIO PARA PROBAR, PASSWORD: "admin"
-INSERT INTO users VALUES ("dsevilla", "dsevilla@um.es", "21232f297a57a5a743894a0e4a801fc3", "diego", "TOKEN", 0);
-
+INSERT INTO users VALUES ("1", "dsevilla@um.es", "21232f297a57a5a743894a0e4a801fc3", "diego", "TOKEN", 0);
 
 -- Tabla de conversaciones
 CREATE TABLE IF NOT EXISTS conversations (
     dialogue_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(50),
+    user_id INT,
     name VARCHAR(100),
     status ENUM('READY', 'BUSY', 'FINISHED') DEFAULT 'READY',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -46,3 +45,4 @@ CREATE TABLE IF NOT EXISTS statistics (
     num_prompts INT DEFAULT 0,
     last_activity TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

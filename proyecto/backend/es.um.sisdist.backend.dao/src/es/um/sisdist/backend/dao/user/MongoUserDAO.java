@@ -79,4 +79,10 @@ public class MongoUserDAO implements IUserDAO
         collection.get().insertOne(user);
         return Optional.of(user);
     }
+
+    @Override
+    public void updateUser(String id, User user) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateUser'");
+    }
 }

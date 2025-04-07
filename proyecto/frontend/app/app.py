@@ -148,6 +148,37 @@ def settings():
     if request.method == 'POST' and form.validate_on_submit():
         user = current_user  # Usuario autenticado
 
+        payload = {
+            "name": form.new_name.data.strip() or user.name,
+            "email": form.new_email.data.strip() or user.email,
+            "password": form.new_password.data.strip() or None  # Si está vacía, no la cambias
+        }
+
+        # Haz una solicitud PUT al backend para actualizar el usuario
+        try:
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            response = requests.put(f"http://backend-rest:8080/Service/u/{user.email}", json=payload, headers=headers)
+
+            if response.status_code == 200:
+                updated_data = response.json()
+                user.name = updated_data["name"]
+                user.email = updated_data["email"]
+                if payload["password"]:
+                    user.set_password(payload["password"])
+                flash('Settings updated successfully!', 'success')
+            else:
+                flash(f'Error updating user: {response.status_code}', 'danger')
+
+        except requests.exceptions.RequestException as e:
+            flash(f"Request error: {e}", 'danger')
+
+        return redirect(url_for('settings'))
+
+    return render_template('settings.html', form=form)
+
+    '''
         # Buscar el usuario en `users` y actualizar solo los datos modificados
         for i, u in enumerate(users):
             if u.id == user.id:
@@ -165,7 +196,7 @@ def settings():
         flash('Settings updated successfully!', 'success')
         return redirect(url_for('settings'))
 
-    return render_template('settings.html', form=form)
+    return render_template('settings.html', form=form)'''
 
 
 
@@ -191,6 +222,7 @@ def load_user(user_id):
         if str(user.id) == user_id:
             return user
     return None
+    
 
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required

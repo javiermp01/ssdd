@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import es.um.sisdist.backend.dao.models.User;
@@ -83,18 +84,17 @@ public class SQLUserDAO implements IUserDAO {
                 return Optional.empty(); // El correo ya está en uso
             }
 
-            // Extraer el 'id' del correo electrónico (todo lo que está antes del '@')
-            String id = email.split("@")[0];
+            // Generar un token único utilizando UUID
+            String token = UUID.randomUUID().toString(); // Genera un token único
 
             // Insertar el nuevo usuario en la base de datos en el orden correcto
-            String sql = "INSERT INTO users (id, email, password_hash, name, token, visits) VALUES (?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO users (email, password_hash, name, token, visits) VALUES (?, ?, ?, ?, ?)";
             stm = conn.get().prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
-            stm.setString(1, id); // id generado
-            stm.setString(2, email); // correo electrónico
-            stm.setString(3, passwordHash); // hash de la contraseña
-            stm.setString(4, name); // nombre
-            stm.setString(5, ""); // token vacío
-            stm.setInt(6, 0); // visitas iniciales en 0
+            stm.setString(1, email); // correo electrónico
+            stm.setString(2, passwordHash); // hash de la contraseña
+            stm.setString(3, name); // nombre
+            stm.setString(4, token); // token vacío
+            stm.setInt(5, 0); // visitas iniciales en 0
 
             int rowsAffected = stm.executeUpdate(); // Ejecuta la inserción
 
@@ -118,6 +118,29 @@ public class SQLUserDAO implements IUserDAO {
                     result.getInt(6))); // visits
         } catch (SQLException e) {
             return Optional.empty();
+        }
+    }
+
+    // Método para actualizar un usuario en la base de datos
+    @Override
+    public void updateUser(String email, User user) {
+        String query = "UPDATE users SET email = ?, password_hash = ?, name = ? WHERE id = ?";
+
+        try (Connection connection = conn.get();
+                PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            stmt.setString(1, user.getEmail());
+            stmt.setString(2, user.getPassword_hash());
+            stmt.setString(3, user.getName());
+            stmt.setString(4, user.getId());
+
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("No user found with the given email");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Aquí podrías lanzar una excepción personalizada si lo deseas
         }
     }
 }
