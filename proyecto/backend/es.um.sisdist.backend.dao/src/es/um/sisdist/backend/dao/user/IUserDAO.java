@@ -13,4 +13,6 @@ public interface IUserDAO
     public Optional<User> registerUser(String name, String email, String passwordHash);
 
     public void updateUser(String id, User user);
+
+    public boolean deleteUserByEmail(String email);
 }

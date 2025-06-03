@@ -21,6 +21,9 @@ class User(UserMixin):
     def check_password(self, password):
         return self.password == hashlib.sha256(password.encode('utf-8')).hexdigest()
 
+    def get_id(self):
+        return self.email
+
     def get_user(email):
         for user in users:
             if user.email == email:

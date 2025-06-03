@@ -6,7 +6,6 @@
 
     <form method="POST">
         {{ form.hidden_tag() }}
-        <h1 class="h3 mb-3 fw-normal">Please sign up</h1>
 
         <label>New Email</label>
         {{ form.new_email(class="form-control") }}
@@ -27,10 +26,6 @@
         {% endfor %}
 
         <button type="submit" class="btn btn-primary mt-3">Update Settings</button>
-    </form>
-
-    <form method="POST" action="{{ url_for('delete_account') }}">
-        <button type="submit" class="btn btn-danger mt-3">Delete Account</button>
     </form>
 </div>
 {% endblock %}

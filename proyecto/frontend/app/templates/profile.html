@@ -1,8 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="title">
-    Welcome, {{current_user.name}}!! {{current_user.email}}
-    Welcome, {{current_user.name}}!! {{current_user.email}}
-</h1>
+<div class="container mt-5">
+    <div class="card shadow-sm" style="max-width: 500px; margin: auto;">
+        <div class="card-body text-center">
+            <img src="https://ui-avatars.com/api/?name={{ user.name|urlencode }}&background=0D8ABC&color=fff&size=128" 
+                 class="rounded-circle mb-3" alt="Avatar">
+            <h3 class="card-title mb-1">{{ user.name }}</h3>
+            <h6 class="card-subtitle mb-3 text-muted">{{ user.email }}</h6>
+            <a href="{{ url_for('settings') }}" class="btn btn-outline-primary mb-2">Editar perfil</a>
+            <form method="POST" action="{{ url_for('delete_account') }}" onsubmit="return confirm('¿Seguro que quieres borrar tu cuenta?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar cuenta</button>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
