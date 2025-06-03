@@ -7,7 +7,14 @@
 {% block content %}
 <div class="chat-container">
   <h1>Chat</h1>
-  <div id="chat-box"></div>
+  <div id="chat-box">
+    {% if conversation and conversation.messages %}
+      {% for msg in conversation.messages %}
+        <div class="message user"><strong>Tú:</strong> {{ msg.user_message }}</div>
+        <div class="message bot"><strong>Bot:</strong> {{ msg.bot_response }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
   <div class="input-area">
     <input type="text" id="user-input" placeholder="Escribe un mensaje..." autocomplete="off">
     <button id="send-btn">Enviar</button>
@@ -15,19 +22,27 @@
 </div>
 
 <script>
+  const conversationId = "{{ conversation.id if conversation else '' }}";
+  console.log("conversationId:", conversationId);  // Ayuda a depurar
+
   document.getElementById('send-btn').addEventListener('click', sendMessage);
   document.getElementById('user-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') sendMessage();
   });
 
   function sendMessage() {
-    let userInput = document.getElementById('user-input').value.trim();
+    const userInput = document.getElementById('user-input').value.trim();
     if (userInput === "") return;
 
-    let chatBox = document.getElementById('chat-box');
+    const chatBox = document.getElementById('chat-box');
     chatBox.innerHTML += `<div class="message user"><strong>Tú:</strong> ${userInput}</div>`;
 
-    fetch('/prompt', {
+    let fetchUrl = '/prompt';
+    if (conversationId) {
+      fetchUrl += `?conversation_id=${conversationId}`;
+    }
+
+    fetch(fetchUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: userInput })
@@ -41,14 +56,8 @@
     .catch(error => console.error('Error:', error));
   }
 
-  // Añadir evento beforeunload para terminar la conversación cuando el usuario abandona la página
   window.addEventListener('beforeunload', function() {
     navigator.sendBeacon('{{ url_for("end_conversation") }}', JSON.stringify({}));
-    //fetch('{{ url_for("end_conversation") }}', {
-      //method: 'POST',
-      //headers: { 'Content-Type': 'application/json' },
-      //body: JSON.stringify({})  // No necesitamos datos adicionales, solo la solicitud para terminar la conversación
-    //});
   });
 </script>
 {% endblock %}

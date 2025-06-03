@@ -4,6 +4,7 @@ from datetime import datetime
 
 users = []
 conversations = []
+messages = []
 
 class User(UserMixin):
 
@@ -35,12 +36,16 @@ class Conversation:
         self.user_id = user_id
         self.messages = []
         self.timestamp = datetime.now()
-    
-    def __repr__(self):
-        return f'<Conversation {self.user_id} - {self.timestamp}>'
 
     def add_message(self, user_message, bot_response):
         self.messages.append(Message(user_message, bot_response))
+    
+    def __repr__(self):
+        return f'<Conversation {self.id} - User {self.user_id} - {self.timestamp}>'
+
+    #def get_messages(self):
+    #    return [m for m in messages if m.conversation_id == self.id]
+
 
 class Message:
     def __init__(self, user_message, bot_response):
@@ -48,7 +53,7 @@ class Message:
         self.bot_response = bot_response
 
     def __repr__(self):
-        return f"Message {self.id}, Conversation {self.conversation_id}"
+        return f"Message (User: {self.user_message}, Bot: {self.bot_response})"
 
 # Función para crear una conversación
 def create_conversation(id, user_id):

@@ -14,7 +14,11 @@ from forms import LoginForm, SignupForm, SettingsForm
 app = Flask(__name__, static_url_path='')
 login_manager = LoginManager()
 login_manager.init_app(app) # Para mantener la sesión
-
+logging.basicConfig(
+    filename='app_logs.log',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 # Configurar el secret_key. OJO, no debe ir en un servidor git público.
 # Python ofrece varias formas de almacenar esto de forma segura, que
 # no cubriremos aquí.
@@ -129,12 +133,7 @@ def login():
             error = f"Error: {e}"
 
     return render_template('login.html', form=form, error=error)
-"""
-@app.route('/recent')
-@login_required
-def recent():
-    return render_template('recent.html')
-"""
+
 @app.route('/profile')
 @login_required
 def profile():
@@ -148,37 +147,6 @@ def settings():
     if request.method == 'POST' and form.validate_on_submit():
         user = current_user  # Usuario autenticado
 
-        payload = {
-            "name": form.new_name.data.strip() or user.name,
-            "email": form.new_email.data.strip() or user.email,
-            "password": form.new_password.data.strip() or None  # Si está vacía, no la cambias
-        }
-
-        # Haz una solicitud PUT al backend para actualizar el usuario
-        try:
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.put(f"http://backend-rest:8080/Service/u/{user.email}", json=payload, headers=headers)
-
-            if response.status_code == 200:
-                updated_data = response.json()
-                user.name = updated_data["name"]
-                user.email = updated_data["email"]
-                if payload["password"]:
-                    user.set_password(payload["password"])
-                flash('Settings updated successfully!', 'success')
-            else:
-                flash(f'Error updating user: {response.status_code}', 'danger')
-
-        except requests.exceptions.RequestException as e:
-            flash(f"Request error: {e}", 'danger')
-
-        return redirect(url_for('settings'))
-
-    return render_template('settings.html', form=form)
-
-    '''
         # Buscar el usuario en `users` y actualizar solo los datos modificados
         for i, u in enumerate(users):
             if u.id == user.id:
@@ -196,7 +164,7 @@ def settings():
         flash('Settings updated successfully!', 'success')
         return redirect(url_for('settings'))
 
-    return render_template('settings.html', form=form)'''
+    return render_template('settings.html', form=form)
 
 
 
@@ -222,51 +190,52 @@ def load_user(user_id):
         if str(user.id) == user_id:
             return user
     return None
-    
 
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required
 def prompt():
-    logging.debug("Post")
-    
-    # Si hay un `conversation_id` en la URL, se recupera la conversación correspondiente
+    logging.debug("Método: %s", request.method)
+
+    conversation = None
     conversation_id = request.args.get('conversation_id')
-    
+
+    # Buscar conversación desde GET param o session
     if conversation_id:
-        # Recuperar la conversación activa usando el `conversation_id` de la URL
         conversation = next((c for c in conversations if c.id == conversation_id), None)
         if conversation is None:
             flash('Conversación no encontrada.', 'danger')
-            return redirect(url_for('index'))  # O a donde prefieras redirigir
-        logging.debug(f"Continuing conversation. ID: {conversation_id}")
-    else:
-        # Si no hay `conversation_id`, crear una nueva conversación
-        if 'conversation_id' not in session:
+            return redirect(url_for('logs'))
+        session['conversation_id'] = conversation_id
+        logging.debug(f"Continuando conversación ID: {conversation_id}")
+    elif 'conversation_id' in session:
+        conversation = next((c for c in conversations if c.id == session['conversation_id']), None)
+        if conversation:
+            logging.debug(f"Usando conversación de sesión ID: {session['conversation_id']}")
+        else:
+            session.pop('conversation_id')
+
+    if request.method == 'POST':
+        user_message = request.json.get('message')
+        if not user_message:
+            return jsonify({'error': 'Mensaje vacío'}), 400
+
+        # Si no hay conversación válida, crearla ahora (POST real con contenido)
+        if not conversation:
             conversation_id = str(uuid.uuid4())
             conversation = Conversation(conversation_id, current_user.id)
             conversations.append(conversation)
             session['conversation_id'] = conversation_id
-            logging.debug(f"Created new conversation. ID: {conversation_id}")
-        else:
-            conversation = next((c for c in conversations if c.id == session['conversation_id']), None)
-            logging.debug(f"Existing conversation. ID: {session.get('conversation_id')}")
-    
-    if request.method == 'POST':
-        user_message = request.json.get('message')
-        if not user_message:
-            flash('Empty message.', 'danger')
-            return redirect(url_for('prompt'))
+            logging.debug(f"Creada nueva conversación ID (POST): {conversation_id}")
 
-        bot_response = f"Respuesta a: {user_message}"  
-
-        # Agregar mensaje a la conversación
+        bot_response = f"Respuesta a: {user_message}"
         conversation.add_message(user_message, bot_response)
-
-        logging.debug(f"User: {user_message}, Bot: {bot_response}")
-
+        logging.debug(f"Añadido mensaje a conversación {conversation.id}")
         return jsonify({'response': bot_response, 'conversation_id': conversation.id})
 
+    # GET: simplemente renderizar sin crear conversación
     return render_template('prompt.html', conversation=conversation)
+
+
 
 @app.route('/end_conversation', methods=['POST'])
 @login_required
