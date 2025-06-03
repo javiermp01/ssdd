@@ -113,31 +113,7 @@ public class AppLogicImpl {
         return newUser;
     }
 
-    // En la clase AppLogicImpl
     public boolean updateUser(String email, UserDTO updatedData) {
-        // Buscar el usuario en la base de datos por el correo electrónico
-        /**Optional<User> userOptional = dao.getUserByEmail(email); // Usando tu DAO para buscar al usuario
-
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-
-            // Actualizar los campos del usuario
-            if (updatedData.getName() != null) {
-                user.setName(updatedData.getName());
-            }
-            if (updatedData.getEmail() != null) {
-                user.setEmail(updatedData.getEmail());
-            }
-            if (updatedData.getPassword() != null) {
-                user.setPassword_hash(UserUtils.md5pass(updatedData.getPassword()));
-            }
-
-            // Guardar los cambios en la base de datos
-            dao.updateUser(email, user);
-
-            return true;
-        }*/
-
         Optional<User> originalUser = dao.getUserByEmail(email);
         if (originalUser.isPresent()) {
             User user = new User(
@@ -149,11 +125,13 @@ public class AppLogicImpl {
                     originalUser.get().getVisits());
             dao.updateUser(email, user);
             return true;
-        } else {
-            // usuario no encontrado -> devolver 404
         }
         // Si no encontramos al usuario, devolver false
         return false;
+    }
+
+    public boolean deleteUserByEmail(String email) {
+        return dao.deleteUserByEmail(email);
     }
 
 }

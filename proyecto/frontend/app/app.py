@@ -32,26 +32,21 @@ def index():
 def signup():
     form = SignupForm()
     if request.method == 'POST' and form.validate_on_submit():
-        # Enviar solicitud al backend para registrar el usuario
         payload = {
             'name': form.name.data,
             'email': form.email.data,
-            'password': form.password.data  # Asegúrate de que la contraseña se maneje de manera segura
+            'password': form.password.data
         }
 
         try:
-            headers = {
-                'Content-Type': 'application/json',
-            }
+            headers = {'Content-Type': 'application/json'}
             response = requests.post("http://backend-rest:8080/Service/signup", json=payload, headers=headers)
             if response.status_code == 201:
-                flash('Account created successfully! You can log in now.', 'success')
+                flash('Account created successfully! You are now logged in.', 'success')
                 user_data = response.json()
-                user = User(user_data["id"], user_data["name"],
-                    user_data["email"], form.password.data
-                )
-                users.append(user)
-                return redirect(url_for('login'))
+                user = User(user_data["id"], user_data["name"], user_data["email"], "")
+                login_user(user)
+                return redirect(url_for('index'))
             elif response.status_code == 400:
                 flash('Email already registered.', 'danger')
                 return redirect(url_for('signup'))
@@ -64,27 +59,6 @@ def signup():
 
     return render_template('signup.html', form=form)
 
-"""@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    error = None
-    form = LoginForm(request.form if request.method == 'POST' else None)
-
-    if request.method == "POST" and form.validate():
-        # Buscar el usuario en la lista
-        user = next((u for u in users if u.email == form.email.data), None)
-
-        # Validar usuario y contraseña con el método check_password()
-        if user is None or not user.check_password(form.password.data):
-            error = 'Invalid Credentials. Please try again.'
-        else:
-            login_user(user, remember=form.remember_me.data)
-            return redirect(url_for('index'))
-
-    return render_template('login.html', form=form, error=error)"""
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -94,37 +68,24 @@ def login():
     form = LoginForm(request.form if request.method == 'POST' else None)
 
     if request.method == "POST" and form.validate():
-        # Preparar la solicitud al backend para validar el login
         payload = {
             'email': form.email.data,
             'password': form.password.data
         }
 
         try:
-            headers = {
-                'Content-Type': 'application/json',
-            }
-            # Hacer una solicitud POST al endpoint checkLogin del backend
+            headers = {'Content-Type': 'application/json'}
             response = requests.post("http://backend-rest:8080/Service/checkLogin", json=payload, headers=headers)
 
             if response.status_code == 200:  # Login exitoso
-                user_data = response.json()  # Recibir datos del usuario en formato JSON
-
-                # Crear un objeto usuario aquí (esto depende de tu implementación en Flask-Login)
-                user = User(user_data["id"], user_data["name"],
-                    user_data["email"], form.password.data
-                )
-                users.append(user)
-
-                # Loguear al usuario
+                user_data = response.json()
+                user = User(user_data["id"], user_data["name"], user_data["email"], "")
                 login_user(user, remember=form.remember_me.data)
                 return redirect(url_for('index'))
-
-            elif response.status_code == 403:  # Si el login falla
+            elif response.status_code == 403:
                 error = 'Invalid Credentials. Please try again.'
             else:
                 error = 'Something went wrong. Please try again later.'
-        
         except requests.exceptions.RequestException as e:
             error = f"Error: {e}"
 
@@ -138,7 +99,17 @@ def recent():
 @app.route('/profile')
 @login_required
 def profile():
-    return render_template('profile.html')
+    try:
+        response = requests.get(f"http://backend-rest:8080/Service/u/{current_user.email}")
+        if response.status_code == 200:
+            user_data = response.json()
+            return render_template('profile.html', user=user_data)
+        else:
+            flash('No se pudo obtener la información del perfil.', 'danger')
+            return redirect(url_for('index'))
+    except Exception as e:
+        flash(f'Error al conectar con el backend: {e}', 'danger')
+        return redirect(url_for('index'))
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -146,28 +117,28 @@ def settings():
     form = SettingsForm()
 
     if request.method == 'POST' and form.validate_on_submit():
-        user = current_user  # Usuario autenticado
+        user = current_user
+        old_email = user.email
 
         payload = {
             "name": form.new_name.data.strip() or user.name,
             "email": form.new_email.data.strip() or user.email,
-            "password": form.new_password.data.strip() or None  # Si está vacía, no la cambias
+            "password": form.new_password.data.strip() or None
         }
 
-        # Haz una solicitud PUT al backend para actualizar el usuario
         try:
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.put(f"http://backend-rest:8080/Service/u/{user.email}", json=payload, headers=headers)
+            headers = {'Content-Type': 'application/json'}
+            response = requests.put(f"http://backend-rest:8080/Service/u/{old_email}", json=payload, headers=headers)
 
             if response.status_code == 200:
                 updated_data = response.json()
-                user.name = updated_data["name"]
-                user.email = updated_data["email"]
+                # Crea un nuevo objeto User con los datos actualizados
+                updated_user = User(updated_data["id"], updated_data["name"], updated_data["email"], "")
                 if payload["password"]:
-                    user.set_password(payload["password"])
+                    updated_user.set_password(payload["password"])
+                login_user(updated_user)  # Refresca la sesión
                 flash('Settings updated successfully!', 'success')
+                return redirect(url_for('profile'))
             else:
                 flash(f'Error updating user: {response.status_code}', 'danger')
 
@@ -178,35 +149,21 @@ def settings():
 
     return render_template('settings.html', form=form)
 
-    '''
-        # Buscar el usuario en `users` y actualizar solo los datos modificados
-        for i, u in enumerate(users):
-            if u.id == user.id:
-                if form.new_name.data.strip():  # Si el campo no está vacío, actualizar
-                    users[i].name = form.new_name.data.strip()
-                    user.name = form.new_name.data.strip()
-                if form.new_email.data.strip():
-                    users[i].email = form.new_email.data.strip()
-                    user.email = form.new_email.data.strip()
-                if form.new_password.data.strip():
-                    users[i].set_password(form.new_password.data.strip())
-                    user.set_password(form.new_password.data.strip())
-                break
-
-        flash('Settings updated successfully!', 'success')
-        return redirect(url_for('settings'))
-
-    return render_template('settings.html', form=form)'''
-
-
-
 @app.route('/delete_account', methods=['POST'])
 @login_required
 def delete_account():
-    global users
-    users = [u for u in users if u.email != current_user.email]  # Elimina el usuario
+    try:
+        headers = {'Content-Type': 'application/json'}
+        print("Intentando borrar usuario:", current_user.email)  # DEBUG
+        response = requests.delete(f"http://backend-rest:8080/Service/u/{current_user.email}", headers=headers)
+        print("Código de respuesta backend:", response.status_code, response.text)  # DEBUG
+        if response.status_code == 200:
+            flash('Your account has been deleted.', 'danger')
+        else:
+            flash('Could not delete your account.', 'danger')
+    except requests.exceptions.RequestException as e:
+        flash(f"Request error: {e}", 'danger')
     logout_user()
-    flash('Your account has been deleted.', 'danger')
     return redirect(url_for('index'))
 
 
@@ -217,12 +174,16 @@ def logout():
     return redirect(url_for('index'))
 
 @login_manager.user_loader
-def load_user(user_id):
-    for user in users:
-        if str(user.id) == user_id:
-            return user
-    return None
-    
+def load_user(user_email):
+    try:
+        response = requests.get(f"http://backend-rest:8080/Service/u/{user_email}")
+        if response.status_code == 200:
+            user_data = response.json()
+            return User(user_data["id"], user_data["name"], user_data["email"], "")
+        else:
+            return None
+    except Exception:
+        return None
 
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required

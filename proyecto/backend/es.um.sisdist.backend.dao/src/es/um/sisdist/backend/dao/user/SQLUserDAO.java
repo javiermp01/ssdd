@@ -143,4 +143,18 @@ public class SQLUserDAO implements IUserDAO {
             // Aquí podrías lanzar una excepción personalizada si lo deseas
         }
     }
+
+    @Override
+    public boolean deleteUserByEmail(String email) {
+        String query = "DELETE FROM users WHERE email = ?";
+        try (Connection connection = conn.get();
+            PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, email);
+            int rowsDeleted = stmt.executeUpdate();
+            return rowsDeleted > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

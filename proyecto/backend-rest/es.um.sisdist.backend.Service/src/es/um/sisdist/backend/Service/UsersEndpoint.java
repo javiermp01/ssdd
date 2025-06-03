@@ -6,6 +6,7 @@ import es.um.sisdist.models.UserDTOUtils;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -26,13 +27,28 @@ public class UsersEndpoint {
     @PUT
     @Path("/{username}")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public Response updateUserInfo(@PathParam("username") String username, UserDTO updatedData) {
         boolean updated = impl.updateUser(username, updatedData); // este método lo defines tú
 
         if (updated) {
+            // Devuelve el usuario actualizado
+            UserDTO userDTO = UserDTOUtils.toDTO(impl.getUserByEmail(updatedData.getEmail()).orElse(null));
+            return Response.ok(userDTO).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).entity("User not found").build();
+        }
+    }
+
+    @DELETE
+    @Path("/{username}")
+    public Response deleteUser(@PathParam("username") String username) {
+        boolean deleted = impl.deleteUserByEmail(username);
+        if (deleted) {
             return Response.ok().build();
         } else {
             return Response.status(Response.Status.NOT_FOUND).entity("User not found").build();
         }
     }
+
 }
