@@ -20,19 +20,23 @@ public class UsersEndpoint {
     @GET
     @Path("/{username}")
     @Produces(MediaType.APPLICATION_JSON)
-    public UserDTO getUserInfo(@PathParam("username") String username) {
-        return UserDTOUtils.toDTO(impl.getUserByEmail(username).orElse(null));
+    public Response getUserInfo(@PathParam("username") String username) {
+        var userOpt = impl.getUserByEmail(username);
+        if (userOpt.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("User not found").build();
+        }
+        return Response.ok(UserDTOUtils.toDTO(userOpt.get())).build();
     }
+
 
     @PUT
     @Path("/{username}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response updateUserInfo(@PathParam("username") String username, UserDTO updatedData) {
-        boolean updated = impl.updateUser(username, updatedData); // este método lo defines tú
+        boolean updated = impl.updateUser(username, updatedData);
 
         if (updated) {
-            // Devuelve el usuario actualizado
             UserDTO userDTO = UserDTOUtils.toDTO(impl.getUserByEmail(updatedData.getEmail()).orElse(null));
             return Response.ok(userDTO).build();
         } else {

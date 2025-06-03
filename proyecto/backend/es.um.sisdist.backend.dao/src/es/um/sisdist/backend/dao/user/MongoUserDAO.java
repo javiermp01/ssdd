@@ -85,4 +85,10 @@ public class MongoUserDAO implements IUserDAO
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'updateUser'");
     }
+
+    @Override
+    public boolean deleteUserByEmail(String email) {
+        // TODO Auto-generated method stub
+        return false;
+    }
 }
