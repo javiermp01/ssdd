@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.utils.Lazy;
@@ -21,6 +22,8 @@ import es.um.sisdist.backend.dao.utils.Lazy;
  */
 public class SQLUserDAO implements IUserDAO {
     Supplier<Connection> conn;
+
+    private static final Logger logger = Logger.getLogger(SQLUserDAO.class.getName());
 
     public SQLUserDAO() {
         conn = Lazy.lazily(() -> {
@@ -55,6 +58,7 @@ public class SQLUserDAO implements IUserDAO {
                 return createUser(result);
         } catch (SQLException e) {
             // Fallthrough
+            e.printStackTrace();
         }
         return Optional.empty();
     }
@@ -70,6 +74,7 @@ public class SQLUserDAO implements IUserDAO {
                 return createUser(result);
         } catch (SQLException e) {
             // Fallthrough
+            e.printStackTrace();
         }
         return Optional.empty();
     }
@@ -126,8 +131,7 @@ public class SQLUserDAO implements IUserDAO {
     public void updateUser(String email, User user) {
         String query = "UPDATE users SET email = ?, password_hash = ?, name = ? WHERE id = ?";
 
-        try (Connection connection = conn.get();
-                PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (PreparedStatement stmt = conn.get().prepareStatement(query)){
 
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getPassword_hash());
@@ -147,8 +151,7 @@ public class SQLUserDAO implements IUserDAO {
     @Override
     public boolean deleteUserByEmail(String email) {
         String query = "DELETE FROM users WHERE email = ?";
-        try (Connection connection = conn.get();
-            PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (PreparedStatement stmt = conn.get().prepareStatement(query)) {
             stmt.setString(1, email);
             int rowsDeleted = stmt.executeUpdate();
             return rowsDeleted > 0;

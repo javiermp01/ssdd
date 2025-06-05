@@ -59,6 +59,7 @@ public class AppLogicImpl {
     }
 
     public Optional<User> getUserByEmail(String userId) {
+        logger.info("Requested user info for username: " + userId);
         Optional<User> u = dao.getUserByEmail(userId);
         return u;
     }
@@ -102,7 +103,10 @@ public class AppLogicImpl {
 
     public boolean updateUser(String email, UserDTO updatedData) {
         Optional<User> originalUser = dao.getUserByEmail(email);
+        logger.info("Updating user: " + email + " with data: " + updatedData.getEmail() + ", "
+                + updatedData.getName() + ", " + updatedData.getPassword());
         if (originalUser.isPresent()) {
+            logger.info("Original user: " + originalUser);
             User user = new User(
                     originalUser.get().getId(),
                     updatedData.getEmail(),
