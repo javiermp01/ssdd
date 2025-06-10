@@ -20,7 +20,16 @@ public class Conversation {
         this.createdAt = System.currentTimeMillis();
     }
 
-    public Conversation(String dialogueId, String userId, String name, String status, List<Message> dialogue, String nextToken, long createdAt) {
+    public Conversation(String dialogueId, String userId, String name, String status, long createdAt) {
+        this.dialogueId = dialogueId;
+        this.userId = userId;
+        this.name = name;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
+
+    public Conversation(String dialogueId, String userId, String name, String status, List<Message> dialogue,
+                       String nextToken, long createdAt) {
         this.dialogueId = dialogueId;
         this.userId = userId;
         this.name = name;

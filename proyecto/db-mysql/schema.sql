@@ -30,9 +30,9 @@ CREATE TABLE IF NOT EXISTS conversations (
 -- Conversaciones de prueba para el usuario "dsevilla@um.es"
 INSERT INTO conversations (user_id, name, status, created_at)
 VALUES
-(1, 'Primera conversación de prueba', 'READY', NOW()),
-(1, 'Conversación activa', 'BUSY', NOW() - INTERVAL 1 DAY),
-(1, 'Conversación finalizada', 'FINISHED', NOW() - INTERVAL 2 DAY);
+(1, 'Primera conversacion de prueba', 'READY', NOW()),
+(1, 'Conversacion activa', 'BUSY', NOW() - INTERVAL 1 DAY),
+(1, 'Conversacion finalizada', 'FINISHED', NOW() - INTERVAL 2 DAY);
 
 -- Tabla de mensajes
 CREATE TABLE IF NOT EXISTS messages (

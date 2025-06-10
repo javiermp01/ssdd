@@ -77,65 +77,116 @@ public class SQLConversationsDAO implements IConversationsDAO {
     }
 
     @Override
-    public Optional<Conversation> getConversation(String email, String dialogueId) {
-        // Aquí se implementaría la lógica para obtener una conversación específica
-        // utilizando consultas SQL.
-        return Optional.empty(); // Retorna un Optional vacío como placeholder
-    }
-
-    @Override
-public Conversation createConversation(String email, String name) {
-    try (
-        PreparedStatement getUserStmt = conn.get().prepareStatement(
-            "SELECT id FROM users WHERE email = ?")
-    ) {
-        getUserStmt.setString(1, email);
-        try (ResultSet userRs = getUserStmt.executeQuery()) {
-            if (!userRs.next()) {
-                return null; // Usuario no encontrado
-            }
-
-            String userId = String.valueOf(userRs.getInt("id"));
-
-            try (
-                PreparedStatement insertStmt = conn.get().prepareStatement(
-                    "INSERT INTO conversations (user_id, name) VALUES (?, ?)",
-                    PreparedStatement.RETURN_GENERATED_KEYS)
-            ) {
-                insertStmt.setInt(1, Integer.parseInt(userId));
-                insertStmt.setString(2, name);
-                int affectedRows = insertStmt.executeUpdate();
-
-                if (affectedRows == 0) {
-                    throw new SQLException("No se pudo crear la conversación, ninguna fila afectada.");
+    public Optional<Conversation> getConversation(String email, String name) {
+        try (
+            PreparedStatement getUserStmt = conn.get().prepareStatement(
+                "SELECT id FROM users WHERE email = ?")
+        ) {
+            getUserStmt.setString(1, email);
+            try (ResultSet userRs = getUserStmt.executeQuery()) {
+                if (!userRs.next()) {
+                    return Optional.empty(); // Usuario no encontrado
                 }
+                int userId = userRs.getInt("id");
 
-                try (ResultSet generatedKeys = insertStmt.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        String dialogueId = String.valueOf(generatedKeys.getInt(1));
-                        long now = System.currentTimeMillis();
+                try (
+                    PreparedStatement getConvStmt = conn.get().prepareStatement(
+                        "SELECT dialogue_id, status, created_at FROM conversations WHERE user_id = ? AND name = ?")
+                ) {
+                    getConvStmt.setInt(1, userId);
+                    getConvStmt.setString(2, name);
 
-                        return new Conversation(
-                            dialogueId,
-                            userId,
-                            name,
-                            "READY",
-                            new ArrayList<>(), // diálogo vacío inicialmente
-                            null, // nextToken
-                            now
-                        );
-                    } else {
-                        throw new SQLException("No se pudo obtener el ID de la conversación creada.");
+                    try (ResultSet convRs = getConvStmt.executeQuery()) {
+                        if (convRs.next()) {
+                            int dialogueIdInt = convRs.getInt("dialogue_id");
+                            String dialogueId = String.valueOf(dialogueIdInt);
+                            String status = convRs.getString("status");
+                            long createdAt = convRs.getTimestamp("created_at").getTime();
+
+                            // Cargar mensajes asociados a la conversación
+                            List<Conversation.Message> dialogue = new ArrayList<>();
+                            try (
+                                PreparedStatement getMsgsStmt = conn.get().prepareStatement(
+                                    "SELECT prompt, response, created_at FROM messages WHERE dialogue_id = ? ORDER BY created_at ASC")
+                            ) {
+                                getMsgsStmt.setInt(1, dialogueIdInt);
+                                try (ResultSet msgsRs = getMsgsStmt.executeQuery()) {
+                                    while (msgsRs.next()) {
+                                        String prompt = msgsRs.getString("prompt");
+                                        String response = msgsRs.getString("response");
+                                        long ts = msgsRs.getTimestamp("created_at").getTime();
+                                        dialogue.add(new Conversation.Message(prompt, response, ts));
+                                    }
+                                }
+                            }
+
+                            return Optional.of(new Conversation(
+                                dialogueId,
+                                String.valueOf(userId),
+                                name,
+                                status,
+                                dialogue,
+                                null, // nextToken
+                                createdAt));
+                        }
                     }
                 }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
-        return null;
+        return Optional.empty();
     }
-}
 
+    @Override
+    public Optional<Conversation> createConversation(String email, String name) {
+        try (
+                PreparedStatement getUserStmt = conn.get().prepareStatement(
+                        "SELECT id FROM users WHERE email = ?")) {
+            getUserStmt.setString(1, email);
+            try (ResultSet userRs = getUserStmt.executeQuery()) {
+                if (!userRs.next()) {
+                    return Optional.empty(); // Usuario no encontrado
+                }
+
+                String userId = String.valueOf(userRs.getInt("id"));
+
+                try (
+                        PreparedStatement insertStmt = conn.get().prepareStatement(
+                                "INSERT INTO conversations (user_id, name) VALUES (?, ?)",
+                                PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    insertStmt.setInt(1, Integer.parseInt(userId));
+                    insertStmt.setString(2, name);
+                    int affectedRows = insertStmt.executeUpdate();
+
+                    if (affectedRows == 0) {
+                        throw new SQLException("No se pudo crear la conversación, ninguna fila afectada.");
+                    }
+
+                    try (ResultSet generatedKeys = insertStmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            String dialogueId = String.valueOf(generatedKeys.getInt(1));
+                            long now = System.currentTimeMillis();
+
+                            return Optional.of(new Conversation(
+                                    dialogueId,
+                                    userId,
+                                    name,
+                                    "READY",
+                                    new ArrayList<>(), // diálogo vacío inicialmente
+                                    null, // nextToken
+                                    now));
+                        } else {
+                            throw new SQLException("No se pudo obtener el ID de la conversación creada.");
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     // boolean addPrompt(String email, String dialogueId, Prompt prompt);
 

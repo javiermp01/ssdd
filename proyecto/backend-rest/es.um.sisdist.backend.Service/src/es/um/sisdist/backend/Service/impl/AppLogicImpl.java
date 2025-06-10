@@ -3,6 +3,7 @@
  */
 package es.um.sisdist.backend.Service.impl;
 
+import java.lang.StackWalker.Option;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -11,6 +12,7 @@ import es.um.sisdist.backend.grpc.PingRequest;
 import es.um.sisdist.backend.dao.DAOFactoryImpl;
 import es.um.sisdist.backend.dao.IDAOFactory;
 import es.um.sisdist.backend.dao.conversations.IConversationsDAO;
+import es.um.sisdist.backend.dao.models.Conversation;
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.models.utils.UserUtils;
 import es.um.sisdist.backend.dao.user.IUserDAO;
@@ -131,6 +133,14 @@ public class AppLogicImpl {
 
     public Object getConversationsByUserId(String email) {
         return conversationsDAO.getConversationsByUserId(email);
+    }
+
+    public Optional<Conversation> createConversation(String email, String name) {
+        return conversationsDAO.createConversation(email, name);
+    }
+
+    public Optional<Conversation> getConversation(String email, String dialogueId) {
+        return conversationsDAO.getConversation(email, dialogueId);
     }
 
 }
