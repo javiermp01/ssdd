@@ -27,6 +27,13 @@ CREATE TABLE IF NOT EXISTS conversations (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Conversaciones de prueba para el usuario "dsevilla@um.es"
+INSERT INTO conversations (user_id, name, status, created_at)
+VALUES
+(1, 'Primera conversación de prueba', 'READY', NOW()),
+(1, 'Conversación activa', 'BUSY', NOW() - INTERVAL 1 DAY),
+(1, 'Conversación finalizada', 'FINISHED', NOW() - INTERVAL 2 DAY);
+
 -- Tabla de mensajes
 CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -36,6 +43,20 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (dialogue_id) REFERENCES conversations(dialogue_id) ON DELETE CASCADE
 );
+
+-- Mensajes para la primera conversación (dialogue_id = 1)
+INSERT INTO messages (dialogue_id, prompt, response)
+VALUES
+(1, 'Hola, ¿cómo estás?', 'Muy bien, gracias. ¿Y tú?'),
+(1, '¿Qué puedes hacer?', 'Puedo ayudarte con muchas cosas.');
+
+-- Mensajes para la segunda conversación (dialogue_id = 2)
+INSERT INTO messages (dialogue_id, prompt, response)
+VALUES
+(2, '¿Cuál es el clima hoy?', 'Hace sol y la temperatura es de 25°C.');
+
+-- No se añaden mensajes a la conversación 3 para dejarla vacía
+
 
 -- Tabla de estadísticas
 CREATE TABLE IF NOT EXISTS statistics (

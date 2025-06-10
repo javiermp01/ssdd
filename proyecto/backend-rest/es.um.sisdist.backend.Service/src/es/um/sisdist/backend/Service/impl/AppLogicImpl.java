@@ -10,6 +10,7 @@ import es.um.sisdist.backend.grpc.GrpcServiceGrpc;
 import es.um.sisdist.backend.grpc.PingRequest;
 import es.um.sisdist.backend.dao.DAOFactoryImpl;
 import es.um.sisdist.backend.dao.IDAOFactory;
+import es.um.sisdist.backend.dao.conversations.IConversationsDAO;
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.models.utils.UserUtils;
 import es.um.sisdist.backend.dao.user.IUserDAO;
@@ -24,6 +25,7 @@ import io.grpc.ManagedChannelBuilder;
 public class AppLogicImpl {
     IDAOFactory daoFactory;
     IUserDAO dao;
+    IConversationsDAO conversationsDAO;
 
     private static final Logger logger = Logger.getLogger(AppLogicImpl.class.getName());
 
@@ -39,8 +41,10 @@ public class AppLogicImpl {
 
         if (backend.isPresent() && backend.get().equals("mongo"))
             dao = daoFactory.createMongoUserDAO();
-        else
+        else {
             dao = daoFactory.createSQLUserDAO();
+            conversationsDAO = daoFactory.createConversationsDAO();
+        }
 
         var grpcServerName = Optional.ofNullable(System.getenv("GRPC_SERVER"));
         var grpcServerPort = Optional.ofNullable(System.getenv("GRPC_SERVER_PORT"));
@@ -123,6 +127,10 @@ public class AppLogicImpl {
 
     public boolean deleteUserByEmail(String email) {
         return dao.deleteUserByEmail(email);
+    }
+
+    public Object getConversationsByUserId(String email) {
+        return conversationsDAO.getConversationsByUserId(email);
     }
 
 }

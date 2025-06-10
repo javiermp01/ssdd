@@ -7,6 +7,8 @@ import es.um.sisdist.backend.dao.user.IUserDAO;
 import es.um.sisdist.backend.dao.user.MongoUserDAO;
 import es.um.sisdist.backend.dao.user.SQLUserDAO;
 
+import es.um.sisdist.backend.dao.conversations.*;
+
 /**
  * @author dsevilla
  *
@@ -23,5 +25,11 @@ public class DAOFactoryImpl implements IDAOFactory
     public IUserDAO createMongoUserDAO()
     {
         return new MongoUserDAO();
+    }
+
+    @Override
+    public IConversationsDAO createConversationsDAO()
+    {
+        return new SQLConversationsDAO();
     }
 }
