@@ -34,11 +34,12 @@ class User(UserMixin):
         return '<User {}>'.format(self.email)
 
 class Conversation:
-    def __init__(self, id, user_id):
+    def __init__(self, id, user_id, title):
         self.id = id
         self.user_id = user_id
         self.messages = []
         self.timestamp = datetime.now()
+        self.title = title
 
     def add_message(self, user_message, bot_response):
         self.messages.append(Message(user_message, bot_response))

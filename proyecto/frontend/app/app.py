@@ -208,26 +208,54 @@ def prompt():
             session.pop('conversation_id')
 
     if request.method == 'POST':
-        user_message = request.json.get('message')
-        if not user_message:
-            return jsonify({'error': 'Mensaje vacío'}), 400
+        # Dos tipos de POST: creación sin título, y envío del título
+        if request.is_json:
+            data = request.get_json()
+            user_message = data.get('message')
+            # Mensaje vacío
+            if not user_message:
+                return jsonify({'error': 'Mensaje vacío'}), 400
 
-        # Si no hay conversación válida, crearla ahora (POST real con contenido)
-        if not conversation:
-            conversation_id = str(uuid.uuid4())
-            conversation = Conversation(conversation_id, current_user.id)
-            conversations.append(conversation)
-            session['conversation_id'] = conversation_id
-            logging.debug(f"Creada nueva conversación ID (POST): {conversation_id}")
+            # Si no hay conversación, crearla vacía y pedir título
+            if not conversation:
+                conversation_id = str(uuid.uuid4())
+                conversation = Conversation(conversation_id, current_user.id)
+                conversations.append(conversation)
+                session['conversation_id'] = conversation_id
+                logging.debug(f"Creada nueva conversación ID (POST): {conversation_id}")
 
-        bot_response = f"Respuesta a: {user_message}"
-        conversation.add_message(user_message, bot_response)
-        logging.debug(f"Añadido mensaje a conversación {conversation.id}")
-        return jsonify({'response': bot_response, 'conversation_id': conversation.id})
+                # Retornar indicación para que frontend muestre formulario de título
+                return jsonify({'need_title': True, 'conversation_id': conversation_id})
 
-    # GET: simplemente renderizar sin crear conversación
+            # Ya hay conversación: procesar mensaje normal
+            bot_response = f"Respuesta a: {user_message}"
+            conversation.add_message(user_message, bot_response)
+            logging.debug(f"Añadido mensaje a conversación {conversation.id}")
+            return jsonify({'response': bot_response, 'conversation_id': conversation.id})
+
+        else:
+            # POST que viene del formulario HTML para poner título
+            title = request.form.get('title')
+            if not conversation:
+                flash("No se encontró la conversación para poner título.", "danger")
+                return redirect(url_for('prompt'))
+
+            if not title or title.strip() == '':
+                flash("El título no puede estar vacío.", "warning")
+                return render_template('title_form.html', conversation=conversation)
+
+            conversation.title = title.strip()
+            logging.debug(f"Título guardado para conversación {conversation.id}: {conversation.title}")
+            flash("Título guardado correctamente.", "success")
+            return redirect(url_for('prompt', conversation_id=conversation.id))
+
+    # GET: mostrar conversación o formulario para poner título si no tiene
+    if conversation and not getattr(conversation, 'title', None):
+        # Si la conversación existe pero no tiene título, mostrar formulario
+        return render_template('title_form.html', conversation=conversation)
+
+    # Caso normal: mostrar conversación con mensajes
     return render_template('prompt.html', conversation=conversation)
-
 
 
 @app.route('/end_conversation', methods=['POST'])
@@ -244,6 +272,26 @@ def logs():
     user_conversations = [c for c in conversations if c.user_id == current_user.id]
     user_conversations.sort(key=lambda c: c.timestamp, reverse=True)
     return render_template('logs.html', conversations=user_conversations)
+
+
+@app.route('/delete_conv', methods=['POST'])
+@login_required
+def delete_conv():
+    conversation_id = request.form.get('conversation_id')
+    if not conversation_id:
+        flash("ID de conversación no proporcionado.", "danger")
+        return redirect(url_for('logs'))
+
+    # Buscar conversación del usuario
+    conversation = next((c for c in conversations if c.id == conversation_id and c.user_id == current_user.id), None)
+    if not conversation:
+        flash("Conversación no encontrada o sin permiso para eliminar.", "danger")
+        return redirect(url_for('logs'))
+
+    # Eliminar la conversación de la lista (o la base de datos si usas DB)
+    conversations.remove(conversation)
+    flash("Conversación eliminada correctamente.", "success")
+    return redirect(url_for('logs'))
 
 
 if __name__ == '__main__':
