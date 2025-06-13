@@ -1,6 +1,6 @@
 package es.um.sisdist.models;
 
-import es.um.sisdist.backend.dao.models.Message;
+import es.um.sisdist.backend.dao.models.Conversation.Message;
 
 public class MessageDTOUtils {
 

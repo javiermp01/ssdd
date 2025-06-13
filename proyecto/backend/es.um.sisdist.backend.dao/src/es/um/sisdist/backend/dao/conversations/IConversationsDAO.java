@@ -12,4 +12,5 @@ public interface IConversationsDAO {
     public Optional<Conversation> createConversation(String email, String name);
     //boolean addPrompt(String email, String name, Prompt prompt);
     public boolean endConversation(String email, String name);
+    public boolean addPrompt(String email, String name, String prompt, long timestamp);
 }

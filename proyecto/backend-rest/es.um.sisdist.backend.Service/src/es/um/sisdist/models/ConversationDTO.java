@@ -19,7 +19,7 @@ public class ConversationDTO {
     public ConversationDTO() {
     }
 
-    public ConversationDTO(String dialogueId, String userId, String name, String status, long createdAt) {
+    public ConversationDTO(String dialogueId, String userId, String name, String status, String nextToken, long createdAt) {
         super();
         this.dialogueId = dialogueId;
         this.userId = userId;
@@ -27,8 +27,8 @@ public class ConversationDTO {
         this.status = status;
         this.createdAt = createdAt;
         this.dialogue = new ArrayList<>();
-        this.endUrl = null;
-        this.nextUrl = null;
+        this.endUrl = "/u/" + userId + "/dialogue/" + name + "/end";
+        this.nextUrl = "/u/" + userId + "/dialogue/" + name + "/next/" + nextToken;
     }
 
     public List<MessageDTO> getDialogue() {

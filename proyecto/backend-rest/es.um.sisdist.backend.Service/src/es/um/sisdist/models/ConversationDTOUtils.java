@@ -15,7 +15,7 @@ public class ConversationDTOUtils {
         List<MessageDTO> dialogueDTO = new ArrayList<>();
         if (c.getDialogue() != null) {
             for (Conversation.Message m : c.getDialogue()) {
-                dialogueDTO.add(new MessageDTO(m.getPrompt(), m.getAnswer(), m.getTimestamp()));
+                dialogueDTO.add(new MessageDTO(m.getPrompt(), m.getResponse(), m.getTimestamp()));
             }
         }
         ConversationDTO dto = new ConversationDTO(
@@ -23,10 +23,10 @@ public class ConversationDTOUtils {
                 c.getUserId(),
                 c.getName(),
                 c.getStatus(),
+                c.getNextToken(),
                 c.getCreatedAt());
         dto.setDialogue(dialogueDTO);
         dto.setEndUrl(c.getEndUrl());
-        dto.setNextUrl(c.getNextUrl());
         return dto;
     }
 }

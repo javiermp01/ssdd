@@ -26,6 +26,8 @@ public class Conversation {
         this.name = name;
         this.status = status;
         this.createdAt = createdAt;
+        this.endUrl = "/u/" + userId + "/dialogue/" + name + "/end";
+        this.nextUrl = "";
     }
 
     public Conversation(String dialogueId, String userId, String name, String status, List<Message> dialogue,
@@ -37,6 +39,8 @@ public class Conversation {
         this.dialogue = dialogue != null ? dialogue : new ArrayList<>();
         this.nextToken = nextToken;
         this.createdAt = createdAt;
+        this.endUrl = "/u/" + userId + "/dialogue/" + name + "/end";
+        this.nextUrl = "/u/" + userId + "/dialogue/" + name + "/next/" + nextToken;
     }
 
     public String getDialogueId() {
@@ -120,14 +124,14 @@ public class Conversation {
     // Clase interna para los mensajes de la conversación
     public static class Message {
         private String prompt;
-        private String answer;
+        private String response;
         private long timestamp;
 
         public Message() {}
 
-        public Message(String prompt, String answer, long timestamp) {
+        public Message(String prompt, String response, long timestamp) {
             this.prompt = prompt;
-            this.answer = answer;
+            this.response = response;
             this.timestamp = timestamp;
         }
 
@@ -139,12 +143,12 @@ public class Conversation {
             this.prompt = prompt;
         }
 
-        public String getAnswer() {
-            return answer;
+        public String getResponse() {
+            return response;
         }
 
-        public void setAnswer(String answer) {
-            this.answer = answer;
+        public void setResponse(String response) {
+            this.response = response;
         }
 
         public long getTimestamp() {
@@ -157,7 +161,7 @@ public class Conversation {
 
         @Override
         public String toString() {
-            return "Message [prompt=" + prompt + ", answer=" + answer + ", timestamp=" + timestamp + "]";
+            return "Message [prompt=" + prompt + ", response=" + response + ", timestamp=" + timestamp + "]";
         }
     }
 }

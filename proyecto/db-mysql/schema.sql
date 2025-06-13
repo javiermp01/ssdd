@@ -23,16 +23,17 @@ CREATE TABLE IF NOT EXISTS conversations (
     user_id INT,
     name VARCHAR(100),
     status ENUM('READY', 'BUSY', 'FINISHED') DEFAULT 'READY',
+    next_token VARCHAR(64),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Conversaciones de prueba para el usuario "dsevilla@um.es"
-INSERT INTO conversations (user_id, name, status, created_at)
+INSERT INTO conversations (user_id, name, status, next_token, created_at)
 VALUES
-(1, 'Primera conversacion de prueba', 'READY', NOW()),
-(1, 'Conversacion activa', 'BUSY', NOW() - INTERVAL 1 DAY),
-(1, 'Conversacion finalizada', 'FINISHED', NOW() - INTERVAL 2 DAY);
+(1, 'Primera conversacion de prueba', 'READY', 'token1', NOW()),
+(1, 'Conversacion activa', 'BUSY', 'token2', NOW() - INTERVAL 1 DAY),
+(1, 'Conversacion finalizada', 'FINISHED', 'token3', NOW() - INTERVAL 2 DAY);
 
 -- Tabla de mensajes
 CREATE TABLE IF NOT EXISTS messages (

@@ -143,4 +143,23 @@ public class AppLogicImpl {
         return conversationsDAO.getConversation(email, dialogueId);
     }
 
+    public boolean endConversation(String email, String name) {
+        var convOpt = conversationsDAO.getConversation(email, name);
+        if (convOpt.isEmpty()) return false;
+        var conv = convOpt.get();
+        if (!"READY".equals(conv.getStatus())) return false;
+        return conversationsDAO.endConversation(email, name);
+    }
+
+    public boolean sendPrompt(String email, String name, String prompt, long timestamp) {
+        // Aquí habría que:
+        // - Cambiar estado a BUSY
+        // - Añadir el prompt a la conversación
+        // - Generar un nuevo nextToken
+        // - Llamar al servicio gRPC
+        // - (Opcional) Guardar el nuevo estado en la BBDD
+        // Por ahora, solo:
+        return conversationsDAO.addPrompt(email, name, prompt, timestamp);
+    }
+
 }
