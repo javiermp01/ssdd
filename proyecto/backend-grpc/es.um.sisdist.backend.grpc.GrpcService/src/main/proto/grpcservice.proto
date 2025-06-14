@@ -5,17 +5,35 @@ option java_package = "es.um.sisdist.backend.grpc";
 
 package es.um.sisdist.backend.grpc;
 
-service GrpcService
-{
+service GrpcService {
     rpc Ping(PingRequest) returns (PingResponse);
+    rpc SendPrompt (PromptRequest) returns (PromptResponse);
+    rpc GetAnswer (PromptResultRequest) returns (PromptResultResponse);
 }
 
-message PingRequest
-{
-	int32 v = 1;
+message PingRequest {
+    int32 v = 1;
 }
 
-message PingResponse
-{
-	int32 v = 1;
+message PingResponse {
+    int32 v = 1;
+}
+
+message PromptRequest {
+    string prompt = 1;
+    string email = 2;
+    string name = 3;
+}
+
+message PromptResponse {
+    string token = 1;
+}
+
+message PromptResultRequest {
+    string token = 1;
+}
+
+message PromptResultResponse {
+    string status = 1;
+    string answer = 2;
 }

@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
+// import java.util.logging.Logger;
 import es.um.sisdist.backend.dao.models.Conversation;
 import es.um.sisdist.backend.dao.utils.Lazy;
 
 public class SQLConversationsDAO implements IConversationsDAO {
     Supplier<Connection> conn;
 
-    private static final Logger logger = Logger.getLogger(SQLConversationsDAO.class.getName());
+    // private static final Logger logger = Logger.getLogger(SQLConversationsDAO.class.getName());
 
     public SQLConversationsDAO() {
         conn = Lazy.lazily(() -> {
@@ -32,7 +32,6 @@ public class SQLConversationsDAO implements IConversationsDAO {
                 return DriverManager.getConnection(
                         "jdbc:mysql://" + sqlServerName + "/" + dbName + "?user=root&password=root");
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
 
                 return null;
@@ -227,24 +226,60 @@ public class SQLConversationsDAO implements IConversationsDAO {
                 insertMsg.setString(3, prompt);
                 insertMsg.setLong(4, timestamp / 1000);
                 insertMsg.executeUpdate();
-            }
-            
-            // Simula espera de 5 segundos (gRPC)
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            // Cambia el estado a READY
-            try (PreparedStatement readyStmt = conn.get().prepareStatement(
-                    "UPDATE conversations SET status = 'READY' WHERE name = ? AND user_id = (SELECT id FROM users WHERE email = ?)")) {
-                readyStmt.setString(1, name);
-                readyStmt.setString(2, email);
-                readyStmt.executeUpdate();
-            }
-            
+            }            
             return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean addResponse(String email, String name, String prompt, String respuesta, long timestamp) {
+        try (
+            PreparedStatement getUserStmt = conn.get().prepareStatement(
+                "SELECT id FROM users WHERE email = ?")
+        ) {
+            getUserStmt.setString(1, email);
+            try (ResultSet userRs = getUserStmt.executeQuery()) {
+                if (!userRs.next()) {
+                    return false; // Usuario no encontrado
+                }
+                int userId = userRs.getInt("id");
+
+                // Busca el diálogo
+                try (PreparedStatement getConvStmt = conn.get().prepareStatement(
+                    "SELECT dialogue_id FROM conversations WHERE user_id = ? AND name = ?")) {
+                    getConvStmt.setInt(1, userId);
+                    getConvStmt.setString(2, name);
+
+                    try (ResultSet convRs = getConvStmt.executeQuery()) {
+                        if (!convRs.next()) {
+                            return false; // Conversación no encontrada
+                        }
+                        int dialogueId = convRs.getInt("dialogue_id");
+
+                        // Actualiza el mensaje más reciente (prompt sin respuesta)
+                        try (PreparedStatement updateMsg = conn.get().prepareStatement(
+                            "UPDATE messages SET response = ? WHERE dialogue_id = ? AND prompt = ? AND response = '' ORDER BY created_at DESC LIMIT 1")) {
+                            updateMsg.setString(1, respuesta);
+                            updateMsg.setInt(2, dialogueId);
+                            updateMsg.setString(3, prompt);
+                            int updated = updateMsg.executeUpdate();
+                            if (updated == 0) return false;
+                        }
+
+                        // Cambia el estado de la conversación a READY
+                        try (PreparedStatement readyStmt = conn.get().prepareStatement(
+                            "UPDATE conversations SET status = 'READY' WHERE dialogue_id = ?")) {
+                            readyStmt.setInt(1, dialogueId);
+                            readyStmt.executeUpdate();
+                        }
+
+                        return true;
+                    }
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

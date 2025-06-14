@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
+// import java.util.logging.Logger;
 
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.utils.Lazy;
@@ -23,7 +23,7 @@ import es.um.sisdist.backend.dao.utils.Lazy;
 public class SQLUserDAO implements IUserDAO {
     Supplier<Connection> conn;
 
-    private static final Logger logger = Logger.getLogger(SQLUserDAO.class.getName());
+    // private static final Logger logger = Logger.getLogger(SQLUserDAO.class.getName());
 
     public SQLUserDAO() {
         conn = Lazy.lazily(() -> {
@@ -39,7 +39,6 @@ public class SQLUserDAO implements IUserDAO {
                 return DriverManager.getConnection(
                         "jdbc:mysql://" + sqlServerName + "/" + dbName + "?user=root&password=root");
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
 
                 return null;

@@ -71,7 +71,6 @@ public class MongoUserDAO implements IUserDAO
     @Override
     public Optional<User> registerUser(String name, String email, String passwordHash)
     {
-        // TODO Auto-generated method stub
         User user = new User();
         user.setName(name);
         user.setEmail(email);
@@ -82,13 +81,11 @@ public class MongoUserDAO implements IUserDAO
 
     @Override
     public void updateUser(String id, User user) {
-        // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'updateUser'");
     }
 
     @Override
     public boolean deleteUserByEmail(String email) {
-        // TODO Auto-generated method stub
         return false;
     }
 }

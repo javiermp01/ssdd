@@ -127,7 +127,6 @@ public class GrpcServiceClient
 		  logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
 		  return;
 	  } catch (InterruptedException e) {
-		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
 

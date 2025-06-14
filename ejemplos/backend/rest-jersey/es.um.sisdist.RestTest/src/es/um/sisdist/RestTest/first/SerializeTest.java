@@ -28,7 +28,6 @@ public class SerializeTest {
 			Item q = (Item)um.unmarshal(new StringReader(writer.toString()));
 			System.out.println(q.getUri());
 		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

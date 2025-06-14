@@ -3,12 +3,13 @@
  */
 package es.um.sisdist.backend.Service.impl;
 
-import java.lang.StackWalker.Option;
 import java.util.Optional;
 import java.util.logging.Logger;
 
 import es.um.sisdist.backend.grpc.GrpcServiceGrpc;
 import es.um.sisdist.backend.grpc.PingRequest;
+import es.um.sisdist.backend.grpc.PromptRequest;
+import es.um.sisdist.backend.grpc.PromptResultRequest;
 import es.um.sisdist.backend.dao.DAOFactoryImpl;
 import es.um.sisdist.backend.dao.IDAOFactory;
 import es.um.sisdist.backend.dao.conversations.IConversationsDAO;
@@ -152,14 +153,19 @@ public class AppLogicImpl {
     }
 
     public boolean sendPrompt(String email, String name, String prompt, long timestamp) {
-        // Aquí habría que:
-        // - Cambiar estado a BUSY
-        // - Añadir el prompt a la conversación
-        // - Generar un nuevo nextToken
-        // - Llamar al servicio gRPC
-        // - (Opcional) Guardar el nuevo estado en la BBDD
-        // Por ahora, solo:
-        return conversationsDAO.addPrompt(email, name, prompt, timestamp);
+        boolean ok = conversationsDAO.addPrompt(email, name, prompt, timestamp);
+        if (!ok) return false;
+
+        var grpcRequest = PromptRequest.newBuilder()
+            .setPrompt(prompt)
+            .setEmail(email)
+            .setName(name)
+            .build();
+        var grpcResponse = blockingStub.sendPrompt(grpcRequest);
+        //String taskId = grpcResponse.getTaskId();
+        // Opcional: guardar el taskId en la BBDD si quieres rastrear el estado
+
+        return true;
     }
 
 }

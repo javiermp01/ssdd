@@ -1,6 +1,5 @@
 package es.um.sisdist.backend.dao.conversations;
 
-import java.lang.StackWalker.Option;
 import java.util.List;
 import java.util.Optional;
 import es.um.sisdist.backend.dao.models.Conversation;
@@ -13,4 +12,5 @@ public interface IConversationsDAO {
     //boolean addPrompt(String email, String name, Prompt prompt);
     public boolean endConversation(String email, String name);
     public boolean addPrompt(String email, String name, String prompt, long timestamp);
+    public boolean addResponse(String email, String name, String prompt, String respuesta, long timestamp);
 }
