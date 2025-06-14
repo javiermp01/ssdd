@@ -2,12 +2,12 @@
 <html lang="en" class="h-100">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LlamaChat</title>
   <link href="/static/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous" />
-  <link rel="shortcut icon" href="{{ url_for('serve_static', path='favicon.ico') }}">
+  <link rel="shortcut icon" href="{{ url_for('serve_static', path='favicon.ico') }}" />
   <style>
     .bd-placeholder-img {
       font-size: 1.125rem;
@@ -22,6 +22,13 @@
         font-size: 3.5rem;
       }
     }
+
+    /* Estilo para el link activo en navbar: fondo blanco y texto negro */
+    .nav-link.active {
+      color: white !important;
+      font-weight: bold;
+      border-radius: 0.25rem;
+    }
   </style>
 
   {% block custom_style %}
@@ -35,7 +42,11 @@
     <!-- Fixed navbar -->
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
       <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('index') }}">Mi no tan magnífica aplicación</a>
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" 
+               style="height: 40px; width: 40px; border-radius: 50%; margin-right: 10px;" />
+          Chat
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
           aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -43,41 +54,37 @@
         <div class="collapse navbar-collapse" id="navbarCollapse">
           <ul class="navbar-nav me-auto mb-2 mb-md-0">
             <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Inicio</a>
+              <a class="nav-link {% if current_page == 'index' %}active{% endif %}" aria-current="page" href="{{ url_for('index') }}">Inicio</a>
             </li>
 
             {% if current_user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('logs')}}">Recientes</a>
-            </li>
-            
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('prompt')}}">NuevoChat</a>
+              <a class="nav-link {% if current_page == 'logs' %}active{% endif %}" href="{{ url_for('logs') }}">Recientes</a>
             </li>
 
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+              <a class="nav-link {% if current_page == 'prompt' %}active{% endif %}" href="{{ url_for('prompt') }}">NuevoChat</a>
             </li>
 
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+              <a class="nav-link {% if current_page == 'profile' %}active{% endif %}" href="{{ url_for('profile') }}">Profile</a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link {% if current_page == 'logout' %}active{% endif %}"href="{{ url_for('logout') }}">Logout</a>
             </li>
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('login') }}">Login!</a>
+              <a class="nav-link {% if current_page == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Login!</a>
             </li>
 
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('signup') }}">Registrate</a>
+              <a class="nav-link {% if current_page == 'signup' %}active{% endif %}" href="{{ url_for('signup') }}">Registrate</a>
             </li>
 
             {% endif %}
 
           </ul>
-          <!-- <form class="d-flex"> -->
-          <!--   <input class="form-control me-2" aype="search" placeholder="Search" aria-label="Search"> -->
-          <!--   <button class="btn btn-outline-success" type="submit">Search</button> -->
-          <!-- </form> -->
         </div>
       </div>
     </nav>
@@ -96,11 +103,16 @@
     </div>
   </main>
 
-  <footer class="footer mt-auto py-3 bg-light">
-    <div class="container">
-      <span class="text-muted">Place sticky footer content here.</span>
-    </div>
-  </footer>
+ <footer class="footer mt-auto py-3 bg-dark text-light">
+   <div class="container text-center">
+     <small>
+       &copy; 2025 LlamaChat. Todos los derechos reservados. | 
+       <a href="/privacy" class="text-light text-decoration-underline">Política de privacidad</a> | 
+       <a href="/contact" class="text-light text-decoration-underline">Contacto</a>
+     </small>
+   </div>
+ </footer>
+
 
   <script src="/static/bootstrap.bundle.min.js"
     integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
@@ -109,3 +121,4 @@
 </body>
 
 </html>
+

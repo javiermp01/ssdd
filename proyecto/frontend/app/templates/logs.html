@@ -6,27 +6,30 @@
   <thead>
     <tr>
       <th>Fecha</th>
-      <th>Mensaje</th>
+      <th>Título</th>
       <th>Acción</th>
     </tr>
   </thead>
   <tbody>
     {% for convo in conversations %}
     <tr>
-      <td>{{ convo.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ convo.timestamp.strftime('%Y-%m-%d  %H:%M') }}</td>
       <td>{{ convo.title }}</td>
       <td>
-        <form action="{{ url_for('prompt') }}" method="get">
-          <input type="hidden" name="conversation_id" value="{{ convo.id }}">
-          <button type="submit" class="btn btn-primary btn-sm">Continuar</button>
-        </form>
-		<form action="{{ url_for('prompt') }}" method="get">
-		  <input type="hidden" name="conversation_id" value="{{ convo.id }}">
-		  <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-		</form>
+        <div class="d-flex gap-2">
+          <form action="{{ url_for('prompt') }}" method="get" class="m-0">
+            <input type="hidden" name="conversation_id" value="{{ convo.id }}">
+            <button type="submit" class="btn btn-primary btn-sm flex-fill">Continuar</button>
+          </form>
+          <form action="{{ url_for('delete_conversation') }}" method="post" class="m-0">
+            <input type="hidden" name="conversation_id" value="{{ convo.id }}">
+            <button type="submit" class="btn btn-danger btn-sm flex-fill">Eliminar</button>
+          </form>
+        </div>
       </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
 {% endblock %}
+

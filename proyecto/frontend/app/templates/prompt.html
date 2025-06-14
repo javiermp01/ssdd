@@ -1,63 +1,163 @@
 {% extends "base.html" %}
 
-{% block custom_style %}
-  <link href="/static/chat.css" rel="stylesheet">
-{% endblock %}
-
 {% block content %}
-<div class="chat-container">
-  <h1>Chat</h1>
-  <div id="chat-box">
-    {% if conversation and conversation.messages %}
-      {% for msg in conversation.messages %}
-        <div class="message user"><strong>Tú:</strong> {{ msg.user_message }}</div>
-        <div class="message bot"><strong>Bot:</strong> {{ msg.bot_response }}</div>
-      {% endfor %}
-    {% endif %}
-  </div>
-  <div class="input-area">
-    <input type="text" id="user-input" placeholder="Escribe un mensaje..." autocomplete="off">
-    <button id="send-btn">Enviar</button>
-  </div>
-</div>
-
-<script>
-  const conversationId = "{{ conversation.id if conversation else '' }}";
-  console.log("conversationId:", conversationId);  // Ayuda a depurar
-
-  document.getElementById('send-btn').addEventListener('click', sendMessage);
-  document.getElementById('user-input').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') sendMessage();
-  });
-
-  function sendMessage() {
-    const userInput = document.getElementById('user-input').value.trim();
-    if (userInput === "") return;
-
-    const chatBox = document.getElementById('chat-box');
-    chatBox.innerHTML += `<div class="message user"><strong>Tú:</strong> ${userInput}</div>`;
-
-    let fetchUrl = '/prompt';
-    if (conversationId) {
-      fetchUrl += `?conversation_id=${conversationId}`;
-    }
-
-    fetch(fetchUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userInput })
-    })
-    .then(response => response.json())
-    .then(data => {
-      chatBox.innerHTML += `<div class="message bot"><strong>Bot:</strong> ${data.response}</div>`;
-      document.getElementById('user-input').value = "";
-      chatBox.scrollTop = chatBox.scrollHeight;
-    })
-    .catch(error => console.error('Error:', error));
+<style>
+  .container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  input[type="text"] {
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    outline: none;
+    transition: border-color 0.3s ease;
+  }
+  input[type="text"]:focus {
+    border-color: #007bff;
+  }
+  button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  #chat {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
+  }
+  .message {
+    max-width: 75%;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 20px;
+    clear: both;
+  }
+  .message.user {
+    background-color: #007bff;
+    color: white;
+    float: right;
+    border-bottom-right-radius: 0;
+  }
+  .message.bot {
+    background-color: #e5e5ea;
+    color: #333;
+    float: left;
+    border-bottom-left-radius: 0;
+  }
+  #message-form {
+    display: flex;
+    gap: 10px;
+  }
+  #message {
+    flex-grow: 1;
+  }
+</style>
 
-  window.addEventListener('beforeunload', function() {
-    navigator.sendBeacon('{{ url_for("end_conversation") }}', JSON.stringify({}));
-  });
-</script>
+<div class="container">
+  {% if not conversation %}
+    <!-- Formulario para crear conversación -->
+    <h2>Crear nueva conversación</h2>
+    <form id="create-convo-form">
+      <input type="text" id="title" name="title" placeholder="Título de la conversación" required>
+      <button type="submit">Crear</button>
+    </form>
+
+    <script>
+      const form = document.getElementById('create-convo-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('title').value.trim();
+        if (!title) return alert('El título es obligatorio');
+
+        const res = await fetch('/prompt', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({title: title})
+        });
+
+        const data = await res.json();
+        if (data.conversation_id) {
+          window.location.href = `/prompt?conversation_id=${data.conversation_id}`;
+        } else if (data.error) {
+          alert('Error: ' + data.error);
+        }
+      });
+    </script>
+  {% else %}
+    <!-- Mostrar conversación existente y formulario para enviar mensajes -->
+    <h2 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+  	Conversación: {{ conversation.title }}
+  	<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" style="width: 50px; height: 50px;">
+    </h2>
+
+    <div id="chat">
+      {% for msg in conversation.messages %}
+        <div class="message user">{{ msg.user_message }}</div>
+        <div class="message bot">{{ msg.bot_response}}</div>
+      {% endfor %}
+    </div>
+
+    <form id="message-form">
+      <input type="text" id="message" autocomplete="off" placeholder="Escribe un mensaje..." required>
+      <button type="submit">Enviar</button>
+    </form>
+
+    <script>
+      const form = document.getElementById('message-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const messageInput = document.getElementById('message');
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        const res = await fetch('/prompt', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            message: message,
+            conversation_id: "{{ conversation.id }}"
+          })
+        });
+        const data = await res.json();
+        if (data.response) {
+          const chat = document.getElementById('chat');
+          chat.innerHTML += `<div class="message user">${message}</div><div class="message bot">${data.response}</div>`;
+          chat.scrollTop = chat.scrollHeight;  // hace scroll abajo automáticamente
+          messageInput.value = '';
+          messageInput.focus();
+        } else if (data.error) {
+          alert('Error: ' + data.error);
+        }
+      });
+    </script>
+  {% endif %}
+</div>
 {% endblock %}
+

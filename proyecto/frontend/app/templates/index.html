@@ -1,18 +1,47 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mt-5">
-    Bienvenido a la página de inicio
-</h1>
-<p class="lead">
-    Create a Login page using Flask :)
-</p>
+<div class="mt-5 text-center">
+  <h1 class="display-3 fw-bold text-primary">LLAMACHAT</h1>
+  <p class="lead mb-4">
+    La forma más rápida y amigable de chatear con IA.
+  </p>
 
-{% if current_user.is_authenticated %}
-<p class="lead">
-    You are logged in as {{ current_user.name }}
-</p>
+  {% if current_user.is_authenticated %}
+  <p class="mb-4 fs-5">
+    Hola, <strong>{{ current_user.name }}</strong>. ¿Listo para empezar una nueva conversación?
+  </p>
+  <a href="{{ url_for('prompt') }}" class="btn btn-lg btn-primary px-5">Nuevo Chat</a>
+  {% else %}
+  <p class="mb-4 fs-5">
+    Por favor <a href="{{ url_for('login') }}">inicia sesión</a> o <a href="{{ url_for('signup') }}">regístrate</a> para comenzar.
+  </p>
+  {% endif %}
+</div>
 
-{% endif %}
+<hr class="my-5" />
 
+<div class="container">
+  <div class="row text-center">
+    <div class="col-md-4 mb-4">
+      <div class="p-4 border rounded shadow-sm h-100">
+        <h3 class="mb-3">Conversaciones inteligentes</h3>
+        <p>Respuestas rápidas y precisas con tecnología avanzada de inteligencia artificial.</p>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="p-4 border rounded shadow-sm h-100">
+        <h3 class="mb-3">Interfaz sencilla</h3>
+        <p>Diseño intuitivo para que cualquier persona pueda chatear sin complicaciones.</p>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="p-4 border rounded shadow-sm h-100">
+        <h3 class="mb-3">Privacidad y seguridad</h3>
+        <p>Tus conversaciones están protegidas y no se comparten con terceros.</p>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
+
