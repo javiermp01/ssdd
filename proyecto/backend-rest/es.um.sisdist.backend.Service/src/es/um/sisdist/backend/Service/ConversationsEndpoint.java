@@ -5,6 +5,7 @@ import es.um.sisdist.models.ConversationDTO;
 import es.um.sisdist.models.MessageDTO;
 import es.um.sisdist.models.ConversationDTOUtils;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -117,6 +118,25 @@ public class ConversationsEndpoint {
         return Response.status(Response.Status.ACCEPTED)
                 .header("Location", location)
                 .build();
+    }
+
+    @GET
+    @Path("/logs")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAllLogs(@PathParam("email") String email) {
+        var logs = impl.getAllConversationLogsByEmail(email);
+        return Response.ok(logs).build();
+    }
+
+    @DELETE
+    @Path("/logs/{dialogueId}")
+    public Response deleteLog(@PathParam("dialogueId") String dialogueId) {
+        boolean deleted = impl.deleteConversationLog(dialogueId);
+        if (deleted) {
+            return Response.ok().build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).entity("Log not found").build();
+        }
     }
     /**
      * @GET

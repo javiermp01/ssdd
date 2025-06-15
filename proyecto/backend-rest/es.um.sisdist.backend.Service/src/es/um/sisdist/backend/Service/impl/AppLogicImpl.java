@@ -3,6 +3,7 @@
  */
 package es.um.sisdist.backend.Service.impl;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -179,4 +180,12 @@ public class AppLogicImpl {
         return dao.getStatistics(email);
     }
 
+    // Eliminar un log por nombre
+    public boolean deleteConversationLog(String name) {
+        return conversationsDAO.deleteConversationById(name);
+    }
+
+    public List<Conversation> getAllConversationLogsByEmail(String email) {
+        return conversationsDAO.getAllConversationsByEmail(email);
+    }
 }

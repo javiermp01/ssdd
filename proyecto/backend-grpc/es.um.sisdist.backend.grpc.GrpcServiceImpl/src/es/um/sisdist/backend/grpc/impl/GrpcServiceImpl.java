@@ -1,5 +1,6 @@
 package es.um.sisdist.backend.grpc.impl;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import es.um.sisdist.backend.grpc.GrpcServiceGrpc;
@@ -20,34 +21,31 @@ import java.util.concurrent.*;
 
 import org.json.JSONObject;
 
-class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase 
-{
+class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase {
 
-	private final Map<String, String> taskStatus = new ConcurrentHashMap<>();
+    private final Map<String, String> taskStatus = new ConcurrentHashMap<>();
     private final Map<String, String> taskAnswer = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-	private Logger logger;
-	IDAOFactory daoFactory;
-	private final IConversationsDAO conversationsDAO;
-	
-    public GrpcServiceImpl(Logger logger) 
-    {
-		super();
-		this.logger = logger;
-		daoFactory = new DAOFactoryImpl();
-		this.conversationsDAO = daoFactory.createConversationsDAO();
-	}
+    private Logger logger;
+    IDAOFactory daoFactory;
+    private final IConversationsDAO conversationsDAO;
 
-	@Override
-	public void ping(PingRequest request, StreamObserver<PingResponse> responseObserver) 
-	{
-		logger.info("Recived PING request, value = " + request.getV());
-		responseObserver.onNext(PingResponse.newBuilder().setV(request.getV()).build());
-		responseObserver.onCompleted();
-	}
+    public GrpcServiceImpl(Logger logger) {
+        super();
+        this.logger = logger;
+        daoFactory = new DAOFactoryImpl();
+        this.conversationsDAO = daoFactory.createConversationsDAO();
+    }
 
-	@Override
+    @Override
+    public void ping(PingRequest request, StreamObserver<PingResponse> responseObserver) {
+        logger.info("Recived PING request, value = " + request.getV());
+        responseObserver.onNext(PingResponse.newBuilder().setV(request.getV()).build());
+        responseObserver.onCompleted();
+    }
+
+    @Override
     public void sendPrompt(PromptRequest request, StreamObserver<PromptResponse> responseObserver) {
         String token = UUID.randomUUID().toString();
         taskStatus.put(token, "processing");
@@ -60,7 +58,7 @@ class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase
                 HttpClient client = HttpClient.newHttpClient();
                 String json = new JSONObject().put("prompt", prompt).toString();
                 HttpRequest httpRequest = HttpRequest.newBuilder()
-                        .uri(URI.create("http://ssdd-llamachat:5020/prompt"))
+                        .uri(URI.create("http://ssdd-llamachat-dummy:5020/prompt"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(json))
                         .build();
@@ -79,7 +77,7 @@ class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase
                         // Usa la cabecera Location que devuelve LlamaChat
                         String location = httpResponse.headers().firstValue("Location").orElse("");
                         if (!location.startsWith("http")) {
-                            location = "http://ssdd-llamachat:5020" + location;
+                            location = "http://ssdd-llamachat-dummy:5020" + location;
                         }
                         logger.info("LlamaChat aceptó el prompt (202), Location: " + location);
                         // Polling loop
@@ -89,7 +87,8 @@ class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase
                                     .uri(URI.create(location))
                                     .GET()
                                     .build();
-                            HttpResponse<String> pollResponse = client.send(pollRequest, HttpResponse.BodyHandlers.ofString());
+                            HttpResponse<String> pollResponse = client.send(pollRequest,
+                                    HttpResponse.BodyHandlers.ofString());
                             int pollStatus = pollResponse.statusCode();
                             logger.info("LlamaChat GET (polling) status: " + pollStatus);
                             if (pollStatus == 200) {
@@ -126,9 +125,10 @@ class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase
                     }
                 }
             } catch (Exception e) {
-                logger.severe("Excepción en sendPrompt: " + e.getMessage());
+                logger.log(Level.SEVERE, "Excepción en sendPrompt", e); // mejor que e.getMessage()
                 taskStatus.put(token, "error");
             }
+            logger.info("sendPrompt task completed for token: " + token);
         });
 
         responseObserver.onNext(PromptResponse.newBuilder().setToken(token).build());
@@ -148,53 +148,59 @@ class GrpcServiceImpl extends GrpcServiceGrpc.GrpcServiceImplBase
         responseObserver.onCompleted();
     }
 
-
-/*
-	@Override
-	public void storeImage(ImageData request, StreamObserver<Empty> responseObserver)
-    {
-		logger.info("Add image " + request.getId());
-    	imageMap.put(request.getId(),request);
-    	responseObserver.onNext(Empty.newBuilder().build());
-    	responseObserver.onCompleted();
-	}
-
-	@Override
-	public StreamObserver<ImageData> storeImages(StreamObserver<Empty> responseObserver) 
-	{
-		// La respuesta, sólo un objeto Empty
-		responseObserver.onNext(Empty.newBuilder().build());
-
-		// Se retorna un objeto que, al ser llamado en onNext() con cada
-		// elemento enviado por el cliente, reacciona correctamente
-		return new StreamObserver<ImageData>() {
-			@Override
-			public void onCompleted() {
-				// Terminar la respuesta.
-				responseObserver.onCompleted();
-			}
-			@Override
-			public void onError(Throwable arg0) {
-			}
-			@Override
-			public void onNext(ImageData imagedata) 
-			{
-				logger.info("Add image (multiple) " + imagedata.getId());
-		    	imageMap.put(imagedata.getId(), imagedata);	
-			}
-		};
-	}
-
-	@Override
-	public void obtainImage(ImageSpec request, StreamObserver<ImageData> responseObserver) {
-		
-		super.obtainImage(request, responseObserver);
-	}
-
-	@Override
-	public StreamObserver<ImageSpec> obtainCollage(StreamObserver<ImageData> responseObserver) {
-		
-		return super.obtainCollage(responseObserver);
-	}
-	*/
+    /*
+     * @Override
+     * public void storeImage(ImageData request, StreamObserver<Empty>
+     * responseObserver)
+     * {
+     * logger.info("Add image " + request.getId());
+     * imageMap.put(request.getId(),request);
+     * responseObserver.onNext(Empty.newBuilder().build());
+     * responseObserver.onCompleted();
+     * }
+     * 
+     * @Override
+     * public StreamObserver<ImageData> storeImages(StreamObserver<Empty>
+     * responseObserver)
+     * {
+     * // La respuesta, sólo un objeto Empty
+     * responseObserver.onNext(Empty.newBuilder().build());
+     * 
+     * // Se retorna un objeto que, al ser llamado en onNext() con cada
+     * // elemento enviado por el cliente, reacciona correctamente
+     * return new StreamObserver<ImageData>() {
+     * 
+     * @Override
+     * public void onCompleted() {
+     * // Terminar la respuesta.
+     * responseObserver.onCompleted();
+     * }
+     * 
+     * @Override
+     * public void onError(Throwable arg0) {
+     * }
+     * 
+     * @Override
+     * public void onNext(ImageData imagedata)
+     * {
+     * logger.info("Add image (multiple) " + imagedata.getId());
+     * imageMap.put(imagedata.getId(), imagedata);
+     * }
+     * };
+     * }
+     * 
+     * @Override
+     * public void obtainImage(ImageSpec request, StreamObserver<ImageData>
+     * responseObserver) {
+     * 
+     * super.obtainImage(request, responseObserver);
+     * }
+     * 
+     * @Override
+     * public StreamObserver<ImageSpec> obtainCollage(StreamObserver<ImageData>
+     * responseObserver) {
+     * 
+     * return super.obtainCollage(responseObserver);
+     * }
+     */
 }

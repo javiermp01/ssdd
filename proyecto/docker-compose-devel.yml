@@ -21,6 +21,11 @@ services:
     image: dsevilla/ssdd-llamachat:1.0
     ports:
       - 5020:5020
+  
+  ssdd-llamachat-dummy:
+    image: dsevilla/ssdd-llamachat-dummy:1.0
+    ports:
+      - 5021:5020
 
   db-mysql:
     build: db-mysql/.

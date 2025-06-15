@@ -286,4 +286,78 @@ public class SQLConversationsDAO implements IConversationsDAO {
         }
     }
 
+    @Override
+    public boolean deleteConversationById(String name) {
+        try (PreparedStatement stmt = conn.get().prepareStatement(
+                "DELETE FROM conversations WHERE name = ?")) {
+            stmt.setString(1, name);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public List<Conversation> getAllConversationsByEmail(String email) {
+        List<Conversation> allConversations = new ArrayList<>();
+        try (
+            PreparedStatement stmt = conn.get().prepareStatement(
+                "SELECT c.dialogue_id, c.user_id, c.name, c.status, c.next_token, c.created_at, " +
+                "m.prompt, m.response, m.created_at AS message_created_at " +
+                "FROM conversations c " +
+                "LEFT JOIN messages m ON c.dialogue_id = m.dialogue_id " +
+                "WHERE c.status = 'FINISHED' AND c.user_id = (SELECT id FROM users WHERE email = ?) " +
+                "ORDER BY c.dialogue_id, m.created_at ASC"
+            )
+        ) {
+            stmt.setString(1, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                String lastDialogueId = null;
+                Conversation currentConversation = null;
+                List<Conversation.Message> dialogue = null;
+
+                while (rs.next()) {
+                    String dialogueId = rs.getString("dialogue_id");
+
+                    if (!dialogueId.equals(lastDialogueId)) {
+                        // Si hay una conversación previa, añádela a la lista
+                        if (currentConversation != null) {
+                            currentConversation.setDialogue(dialogue);
+                            allConversations.add(currentConversation);
+                        }
+                        // Nueva conversación
+                        String name = rs.getString("name");
+                        String status = rs.getString("status");
+                        String nextToken = rs.getString("next_token");
+                        long createdAt = rs.getTimestamp("created_at").getTime();
+                        dialogue = new ArrayList<>();
+                        currentConversation = new Conversation(
+                            dialogueId, email, name, status, dialogue, nextToken, createdAt
+                        );
+                        lastDialogueId = dialogueId;
+                    }
+
+                    String prompt = rs.getString("prompt");
+                    String response = rs.getString("response");
+                    java.sql.Timestamp msgTs = rs.getTimestamp("message_created_at");
+                    if (prompt != null && response != null && msgTs != null) {
+                        long messageCreatedAt = msgTs.getTime();
+                        dialogue.add(new Conversation.Message(prompt, response, messageCreatedAt));
+                    }
+                }
+                // Añade la última conversación si existe
+                if (currentConversation != null) {
+                    currentConversation.setDialogue(dialogue);
+                    allConversations.add(currentConversation);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return allConversations;
+    }
+
 }

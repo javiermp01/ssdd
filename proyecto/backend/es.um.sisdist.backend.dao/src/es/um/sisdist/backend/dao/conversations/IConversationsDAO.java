@@ -13,4 +13,6 @@ public interface IConversationsDAO {
     public boolean endConversation(String email, String name);
     public boolean addPrompt(String email, String name, String prompt, long timestamp);
     public boolean addResponse(String email, String name, String prompt, String respuesta, long timestamp);
+    public List<Conversation> getAllConversationsByEmail(String email);
+    public boolean deleteConversationById(String dialogueId);
 }
