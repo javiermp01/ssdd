@@ -58,13 +58,15 @@ VALUES
 
 -- No se añaden mensajes a la conversación 3 para dejarla vacía
 
-
 -- Tabla de estadísticas
-CREATE TABLE IF NOT EXISTS statistics (
+CREATE TABLE statistics (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(50),
+    user_id INT UNIQUE,
     num_logins INT DEFAULT 0,
     num_prompts INT DEFAULT 0,
     last_activity TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+INSERT INTO statistics (user_id, num_logins, num_prompts, last_activity)
+VALUES (1, 0, 0, NOW());

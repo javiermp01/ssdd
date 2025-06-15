@@ -23,6 +23,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
+import es.um.sisdist.backend.dao.models.Statistics;
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.utils.Lazy;
 
@@ -87,5 +88,23 @@ public class MongoUserDAO implements IUserDAO
     @Override
     public boolean deleteUserByEmail(String email) {
         return false;
+    }
+
+    @Override
+    public void incrementLogin(String email) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'incrementLogin'");
+    }
+
+    @Override
+    public void incrementPrompt(String email) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'incrementPrompt'");
+    }
+
+    @Override
+    public Optional<Statistics> getStatistics(String email) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getStatistics'");
     }
 }

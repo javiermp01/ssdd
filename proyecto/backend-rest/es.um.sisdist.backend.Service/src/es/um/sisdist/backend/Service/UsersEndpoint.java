@@ -55,4 +55,14 @@ public class UsersEndpoint {
         }
     }
 
+    @GET
+    @Path("/{username}/statistics")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getUserStatistics(@PathParam("username") String username) {
+        var statsOpt = impl.getStatistics(username);
+        if (statsOpt.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("No statistics found").build();
+        }
+        return Response.ok(statsOpt.get()).build();
+    }
 }

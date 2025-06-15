@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 // import java.util.logging.Logger;
 
+import es.um.sisdist.backend.dao.models.Statistics;
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.utils.Lazy;
 
@@ -104,7 +105,18 @@ public class SQLUserDAO implements IUserDAO {
 
             if (rowsAffected > 0) {
                 // Obtener el ID generado automáticamente para el nuevo usuario
-                return getUserByEmail(email); // Devolver el nuevo usuario con el ID generado
+                Optional<User> userOpt = getUserByEmail(email);
+                if (userOpt.isPresent()) {
+                    // Inicializa estadísticas para el nuevo usuario
+                    try (PreparedStatement stmt = conn.get().prepareStatement(
+                            "INSERT INTO statistics (user_id, num_logins, num_prompts, last_activity) VALUES (?, 0, 0, NOW())")) {
+                        stmt.setString(1, userOpt.get().getId());
+                        stmt.executeUpdate();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
+                return userOpt;
             }
         } catch (SQLException e) {
             e.printStackTrace(); // Manejo de errores
@@ -158,5 +170,52 @@ public class SQLUserDAO implements IUserDAO {
             e.printStackTrace();
             return false;
         }
+    }
+
+    @Override
+    public void incrementLogin(String email) {
+        try (PreparedStatement stmt = conn.get().prepareStatement(
+                "INSERT INTO statistics (user_id, num_logins, last_activity) " +
+                "VALUES ((SELECT id FROM users WHERE email = ?), 1, NOW()) " +
+                "ON DUPLICATE KEY UPDATE num_logins = num_logins + 1, last_activity = NOW()")) {
+            stmt.setString(1, email);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void incrementPrompt(String email) {
+        try (PreparedStatement stmt = conn.get().prepareStatement(
+                "INSERT INTO statistics (user_id, num_prompts, last_activity) " +
+                "VALUES ((SELECT id FROM users WHERE email = ?), 1, NOW()) " +
+                "ON DUPLICATE KEY UPDATE num_prompts = num_prompts + 1, last_activity = NOW()")) {
+            stmt.setString(1, email);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Optional<Statistics> getStatistics(String email) {
+        try (PreparedStatement stmt = conn.get().prepareStatement(
+                "SELECT num_logins, num_prompts, last_activity " +
+                "FROM statistics WHERE user_id = (SELECT id FROM users WHERE email = ?)")) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Statistics stats = new Statistics();
+                    stats.setNumLogins(rs.getInt("num_logins"));
+                    stats.setNumPrompts(rs.getInt("num_prompts"));
+                    stats.setLastActivity(rs.getTimestamp("last_activity"));
+                    return Optional.of(stats);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
     }
 }

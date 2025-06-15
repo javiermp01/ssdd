@@ -14,6 +14,7 @@ import es.um.sisdist.backend.dao.DAOFactoryImpl;
 import es.um.sisdist.backend.dao.IDAOFactory;
 import es.um.sisdist.backend.dao.conversations.IConversationsDAO;
 import es.um.sisdist.backend.dao.models.Conversation;
+import es.um.sisdist.backend.dao.models.Statistics;
 import es.um.sisdist.backend.dao.models.User;
 import es.um.sisdist.backend.dao.models.utils.UserUtils;
 import es.um.sisdist.backend.dao.user.IUserDAO;
@@ -95,7 +96,11 @@ public class AppLogicImpl {
         if (u.isPresent()) {
             String hashed_pass = UserUtils.md5pass(pass);
             if (0 == hashed_pass.compareTo(u.get().getPassword_hash()))
+            {
+                // Si el usuario y pass son correctos, incrementamos el contador de visitas
+                dao.incrementLogin(email);
                 return u;
+            }
         }
 
         return Optional.empty();
@@ -156,6 +161,8 @@ public class AppLogicImpl {
         boolean ok = conversationsDAO.addPrompt(email, name, prompt, timestamp);
         if (!ok) return false;
 
+        dao.incrementPrompt(email);
+
         var grpcRequest = PromptRequest.newBuilder()
             .setPrompt(prompt)
             .setEmail(email)
@@ -166,6 +173,10 @@ public class AppLogicImpl {
         // Opcional: guardar el taskId en la BBDD si quieres rastrear el estado
 
         return true;
+    }
+
+    public Optional<Statistics> getStatistics(String email) {
+        return dao.getStatistics(email);
     }
 
 }
