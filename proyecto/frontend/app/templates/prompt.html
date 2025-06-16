@@ -82,7 +82,6 @@
 
 <div class="container">
   {% if not conversation %}
-    <!-- Formulario para crear conversación -->
     <h2>Crear nueva conversación</h2>
     <form id="create-convo-form">
       <input type="text" id="title" name="title" placeholder="Título de la conversación" required>
@@ -99,28 +98,27 @@
         const res = await fetch('/prompt', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({title: title})
+          body: JSON.stringify({ title })
         });
 
         const data = await res.json();
-        if (data.conversation_id) {
-          window.location.href = `/prompt?conversation_id=${data.conversation_id}`;
+        if (data.conversation_name) {
+          window.location.href = `/prompt?conversation_name=${data.conversation_name}`;
         } else if (data.error) {
           alert('Error: ' + data.error);
         }
       });
     </script>
   {% else %}
-    <!-- Mostrar conversación existente y formulario para enviar mensajes -->
     <h2 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-  	Conversación: {{ conversation.title }}
-  	<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" style="width: 50px; height: 50px;">
+      Conversación: {{ conversation.title }}
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" style="width: 50px; height: 50px;">
     </h2>
 
     <div id="chat">
       {% for msg in conversation.messages %}
         <div class="message user">{{ msg.user_message }}</div>
-        <div class="message bot">{{ msg.bot_response}}</div>
+        <div class="message bot">{{ msg.bot_response }}</div>
       {% endfor %}
     </div>
 
@@ -130,8 +128,8 @@
     </form>
 
     <script>
-      const form = document.getElementById('message-form');
-      form.addEventListener('submit', async (e) => {
+      const messageForm = document.getElementById('message-form');
+      messageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const messageInput = document.getElementById('message');
         const message = messageInput.value.trim();
@@ -139,17 +137,18 @@
 
         const res = await fetch('/prompt', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: message,
-            conversation_id: "{{ conversation.id }}"
+            conversation_name: "{{ conversation.title }}"
           })
         });
+
         const data = await res.json();
         if (data.response) {
           const chat = document.getElementById('chat');
           chat.innerHTML += `<div class="message user">${message}</div><div class="message bot">${data.response}</div>`;
-          chat.scrollTop = chat.scrollHeight;  // hace scroll abajo automáticamente
+          chat.scrollTop = chat.scrollHeight;
           messageInput.value = '';
           messageInput.focus();
         } else if (data.error) {

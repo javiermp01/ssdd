@@ -4,6 +4,7 @@ import requests
 import os
 import uuid
 import logging
+from datetime import datetime
 
 # Usuarios
 from models import users, User, Conversation, conversations
@@ -184,18 +185,57 @@ def load_user(user_email):
     except Exception:
         return None
 
+from flask import render_template, redirect, url_for
+from flask_login import login_required, current_user
+import requests
+from datetime import datetime
+
+@app.route('/stats')
+@login_required
+def stats():
+    backend_url = "http://backend-rest:8080/Service"
+    r = requests.get(f"{backend_url}/u/{current_user.email}/statistics")
+
+    if r.status_code == 200:
+        data = r.json()
+
+        # Limpieza de la fecha
+        last_activity_raw = data.get("lastActivity", "").replace("[UTC]", "")
+        try:
+            last_activity = datetime.fromisoformat(last_activity_raw.replace("Z", "+00:00"))
+        except Exception:
+            last_activity = None
+
+        # Pasamos todo al template
+        return render_template(
+            "stats.html",
+            numLogins=data.get("numLogins", 0),
+            numPrompts=data.get("numPrompts", 0),
+            lastActivity=last_activity
+        )
+
+    elif r.status_code == 404:
+        return render_template("stats.html", error="No hay estadísticas")
+
+    else:
+        return render_template("stats.html", error="No se pudieron obtener las estadísticas")
+
+
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required
 def prompt():
+    backend_url = "http://backend-rest:8080/Service"
     if request.method == 'GET':
-        conversation_id = request.args.get('conversation_id')
-        if conversation_id:
+        conversation_name = request.args.get('conversation_name')
+        if conversation_name:
             # Recuperar conversación existente
-            conversation = next((c for c in conversations if c.id == conversation_id), None)
-            if conversation is None:
+            r = requests.get(f"{backend_url}/u/{current_user.email}/dialogue/{conversation_name}")
+            if r.status_code == 200:
+                conversation = r.json()
+                return render_template('prompt.html', conversation=conversation, current_page='prompt')
+            else:
                 flash('Conversación no encontrada.', 'danger')
                 return redirect(url_for('logs'))
-            return render_template('prompt.html', conversation=conversation, current_page='prompt')
         else:
             # Mostrar formulario para crear conversación (introducir título)
             return render_template('prompt.html', conversation=None, current_page='prompt')
@@ -207,27 +247,46 @@ def prompt():
 
     # Crear conversación nueva con título
     title = data.get('title')
-    if title:
-        conversation_id = str(uuid.uuid4())
-        conversation = Conversation(conversation_id, current_user.id, title)
-        conversations.append(conversation)
-        session['conversation_id'] = conversation_id
-        return jsonify({'conversation_id': conversation_id})
+    if title: 
+    	r = requests.post(f"{backend_url}/u/{current_user.email}/dialogue", json={"name": data['title']})
+    	location = r.headers.get('Location')
 
+    	if r.status_code == 201:
+            conv = r.json()
+            #return jsonify(conv)
+            session['conversation_name'] = title
+            session['nextUrl'] = conv.get('nextUrl')
+            session['endUrl'] = conv.get('endUrl')
+            return jsonify({'conversation_name': title})
+    	else:
+            return jsonify({'error': 'No se recibieron datos'}), 400
     # Añadir mensaje a conversación existente
-    conversation_id = data.get('conversation_id')
     user_message = data.get('message')
-    if not conversation_id or not user_message:
-        return jsonify({'error': 'Faltan parámetros'}), 400
+    nextUrl = session.get('nextUrl')
+    if not user_message:
+        return jsonify({'error': 'Faltan parámetros user_message'}), 400
+    if not nextUrl:
+        return jsonify({'error': 'Faltan parámetros nextUrl'}), 400
+        
+     # POST /u/{email}/dialogue/{name}/next/{nextToken}
+    payload = {
+        "prompt": user_message,
+        "timestamp": datetime.now().isoformat()
+    }
+    r = requests.post(f"{backend_url}/nextUrl", json=payload)
 
-    conversation = next((c for c in conversations if c.id == conversation_id), None)
-    if not conversation:
+    if r.status_code == 202:
+        return jsonify({'response': f"Respuesta enviada a {user_message}", 'conversation_name': conversation_name})
+    elif r.status_code == 400:
+        return jsonify({'error': 'Token incorrecto'}), 400
+    elif r.status_code == 404:
         return jsonify({'error': 'Conversación no encontrada'}), 404
-
+    else:
+        return jsonify({'error': 'Error desconocido al enviar prompt'}), 500
+        
     bot_response = f"Respuesta a: {user_message}"
-    conversation.add_message(user_message, bot_response)
 
-    return jsonify({'response': bot_response, 'conversation_id': conversation.id})
+    return jsonify({'response': bot_response, 'conversation_name': conversation_name})
 
 
 @app.route('/end_conversation', methods=['POST'])

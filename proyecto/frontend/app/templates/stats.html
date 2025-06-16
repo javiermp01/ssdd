@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .stats-container {
+    max-width: 600px;
+    margin: 60px auto;
+    background: #ffffff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .stats-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .stat-item {
+    font-size: 18px;
+    margin: 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .stat-item strong {
+    color: #555;
+  }
+
+  .error-message {
+    color: #c00;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 20px;
+  }
+</style>
+
+<div class="stats-container">
+  <div class="stats-title">📊 Tus estadísticas </div>
+
+  {% if error %}
+    <div class="error-message">{{ error }}</div>
+  {% else %}
+    <div class="stat-item">
+      <strong>🟢 Inicios de sesión:</strong> {{ numLogins }}
+    </div>
+    <div class="stat-item">
+      <strong>✉️ Prompts enviados:</strong> {{ numPrompts }}
+    </div>
+    <div class="stat-item">
+      <strong>🕒 Última actividad:</strong>
+      {% if lastActivity %}
+        {{ lastActivity.strftime('%d/%m/%Y, %H:%M') }}
+      {% else %}
+        No disponible
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
