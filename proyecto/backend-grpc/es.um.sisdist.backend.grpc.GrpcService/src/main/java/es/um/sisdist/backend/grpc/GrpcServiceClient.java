@@ -31,6 +31,11 @@
 
 package es.um.sisdist.backend.grpc;
 
+import java.util.Scanner;
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+
 /*
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -51,6 +56,48 @@ import com.google.protobuf.Empty;
  */
 public class GrpcServiceClient 
 {
+	private final ManagedChannel channel;
+    private final GrpcServiceGrpc.GrpcServiceBlockingStub blockingStub;
+
+    public GrpcServiceClient(String host, int port) {
+        this.channel = ManagedChannelBuilder.forAddress(host, port)
+                .usePlaintext() // Quitar si usas TLS
+                .build();
+        this.blockingStub = GrpcServiceGrpc.newBlockingStub(channel);
+    }
+
+    public String sendPrompt(String email, String name, String prompt) {
+        PromptRequest request = PromptRequest.newBuilder()
+                .setEmail(email)
+                .setName(name)
+                .setPrompt(prompt)
+                .build();
+        PromptResponse response = blockingStub.sendPrompt(request);
+        return response.getToken();
+    }
+
+    public String getAnswer(String token) {
+        PromptResultRequest request = PromptResultRequest.newBuilder()
+                .setToken(token)
+                .build();
+        PromptResultResponse response = blockingStub.getAnswer(request);
+        if (response.getStatus().equals("ready")) {
+            return response.getAnswer();
+        } else {
+            return "Status: " + response.getStatus();
+        }
+    }
+
+    public int ping(String value) {
+        PingRequest request = PingRequest.newBuilder().setV(value).build();
+        PingResponse response = blockingStub.ping(request);
+        return response.getV();
+    }
+
+    public void shutdown() {
+        channel.shutdown();
+    }
+
 	/*
   private static final Logger logger = Logger.getLogger(GrpcServiceClient.class.getName());
 
