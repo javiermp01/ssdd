@@ -129,7 +129,7 @@ if [[ "$END_URL" != "null" && -n "$END_URL" ]]; then
   NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   END_AUTH_TOKEN=$(echo -n "$FULL_END_URL$NOW$PRIVATE_TOKEN" | md5sum | awk '{print $1}')
   echo "[*] Enviando POST a endUrl..."
-  curl -s -X POST "$FULL_END_URL" \
+  curl -s -X POST        "$FULL_END_URL" \
     -H "User: $EMAIL" \
     -H "Date: $NOW" \
     -H "Auth-Token: $END_AUTH_TOKEN"
