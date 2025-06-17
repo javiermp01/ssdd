@@ -250,16 +250,15 @@ def prompt():
     title = data.get('title')
     if title: 
     	r = requests.post(f"{backend_url}/u/{current_user.email}/dialogue", json={"name": data['title']})
-    	location = r.headers.get('Location')
-
-    	if r.status_code == 201:
+        location = r.headers.get('Location')
+        if r.status_code == 201:
             conv = r.json()
             #return jsonify(conv)
             session['conversation_name'] = title
             session['nextUrl'] = conv.get('nextUrl')
             session['endUrl'] = conv.get('endUrl')
             return jsonify({'conversation_name': title})
-    	else:
+        else:
             return jsonify({'error': 'No se recibieron datos'}), 400
     # Añadir mensaje a conversación existente
     user_message = data.get('message')
@@ -308,7 +307,7 @@ def logs():
     r = requests.get(f"{backend_url}/u/{current_user.email}/dialogue/logs")
     #ARREGLAR ahora mismo r está vacío
     if r.status_code == 200:
-        return jsonify({'error': r.json()}), 500 
+        # return jsonify({'error': r.json()}), 500 
         user_conversations = r.json()  
         # Ordenar por timestamp descendente (si no vienen ya ordenados)
         user_conversations.sort(key=lambda c: c.get('timestamp', ''), reverse=True)
