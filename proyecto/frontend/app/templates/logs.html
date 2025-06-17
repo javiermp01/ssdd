@@ -13,16 +13,17 @@
   <tbody>
     {% for convo in conversations %}
     <tr>
-      <td>{{ convo.timestamp.strftime('%Y-%m-%d  %H:%M') }}</td>
-      <td>{{ convo.title }}</td>
+      {# Convertir la fecha para mostrar solo fecha y hora (suponiendo formato ISO 8601) #}
+      <td>{{ convo.timestamp[:16].replace('T', ' ') if convo.timestamp else '' }}</td>
+      <td>{{ convo.name }}</td>
       <td>
         <div class="d-flex gap-2">
           <form action="{{ url_for('prompt') }}" method="get" class="m-0">
-            <input type="hidden" name="conversation_id" value="{{ convo.id }}">
+            <input type="hidden" name="conversation_name" value="{{ convo.title }}">
             <button type="submit" class="btn btn-primary btn-sm flex-fill">Continuar</button>
           </form>
           <form action="{{ url_for('delete_conversation') }}" method="post" class="m-0">
-            <input type="hidden" name="conversation_id" value="{{ convo.id }}">
+            <input type="hidden" name="conversation_name" value="{{ convo.title }}">
             <button type="submit" class="btn btn-danger btn-sm flex-fill">Eliminar</button>
           </form>
         </div>

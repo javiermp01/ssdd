@@ -4,7 +4,7 @@ import requests
 import os
 import uuid
 import logging
-from datetime import datetime
+import time
 
 # Usuarios
 from models import users, User, Conversation, conversations
@@ -211,7 +211,8 @@ def stats():
             "stats.html",
             numLogins=data.get("numLogins", 0),
             numPrompts=data.get("numPrompts", 0),
-            lastActivity=last_activity
+            lastActivity=last_activity,
+            current_page='stats'
         )
 
     elif r.status_code == 404:
@@ -271,16 +272,19 @@ def prompt():
      # POST /u/{email}/dialogue/{name}/next/{nextToken}
     payload = {
         "prompt": user_message,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": int(time.time() * 1000)  # epoch en milisegundos como espera el backend
     }
-    r = requests.post(f"{backend_url}/nextUrl", json=payload)
+    r = requests.post(f"{backend_url}{nextUrl}", json=payload)
 
-    if r.status_code == 202:
-        return jsonify({'response': f"Respuesta enviada a {user_message}", 'conversation_name': conversation_name})
-    elif r.status_code == 400:
-        return jsonify({'error': 'Token incorrecto'}), 400
+    if r.status_code == 202: #Estado READY
+        response = r.json()
+        return jsonify({'error': response}), 202
+    elif r.status_code == 204:
+        return jsonify({'error': 'La conversación no está en estado READY'}), 204
+    elif r.status_code == 400: #ARREGLAR Ocurre esto en el segundo prompt Token incorrecto
+        return jsonify({'error': nextUrl}), 400
     elif r.status_code == 404:
-        return jsonify({'error': 'Conversación no encontrada'}), 404
+        return jsonify({'error': 'Conversación no encontrada',}), 404
     else:
         return jsonify({'error': 'Error desconocido al enviar prompt'}), 500
         
@@ -298,9 +302,19 @@ def end_conversation():
 @app.route('/logs')
 @login_required
 def logs():
-    user_conversations = [c for c in conversations if c.user_id == current_user.id]
-    user_conversations.sort(key=lambda c: c.timestamp, reverse=True)
-    return render_template('logs.html', conversations=user_conversations, current_page='logs')
+    backend_url = "http://backend-rest:8080/Service"
+    
+    # Llamar al endpoint REST para obtener los logs del usuario
+    r = requests.get(f"{backend_url}/u/{current_user.email}/dialogue/logs")
+    #ARREGLAR ahora mismo r está vacío
+    if r.status_code == 200:
+        return jsonify({'error': r.json()}), 500 
+        user_conversations = r.json()  
+        # Ordenar por timestamp descendente (si no vienen ya ordenados)
+        user_conversations.sort(key=lambda c: c.get('timestamp', ''), reverse=True)
+        return render_template('logs.html', conversations=user_conversations, current_page='logs')
+    else:
+        return jsonify({'error': 'Conversaciones no encontradas'}), 404 
 
 
 @app.route('/delete_conversation', methods=['POST'])

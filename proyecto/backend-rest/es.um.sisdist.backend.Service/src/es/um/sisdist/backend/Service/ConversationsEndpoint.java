@@ -29,18 +29,22 @@ public class ConversationsEndpoint {
         return Response.ok(conversations).build();
     }
 
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response createConversation(@PathParam("email") String email, ConversationDTO conv) {
-        var conversation = impl.createConversation(email, conv.getName());
-        if (conversation != null) {
-            return Response.status(Response.Status.CREATED).entity(ConversationDTOUtils.toDTO(conversation.get()))
-                    .build();
-        } else {
-            return Response.status(Response.Status.BAD_REQUEST).entity("No se pudo crear la conversación").build();
-        }
-    }
+   @POST
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response createConversation(@PathParam("email") String email, ConversationDTO conv) {
+       var conversation = impl.createConversation(email, conv.getName());
+       if (conversation != null) {
+           String location = "/u/" + email + "/dialogue/" + conv.getName();
+           return Response.status(Response.Status.CREATED)
+                   .header("Location", location)
+                   .entity(ConversationDTOUtils.toDTO(conversation.get()))
+                   .build();
+       } else {
+           return Response.status(Response.Status.BAD_REQUEST).entity("No se pudo crear la conversación").build();
+       }
+   }
+
 
     @GET
     @Path("/{name}")
