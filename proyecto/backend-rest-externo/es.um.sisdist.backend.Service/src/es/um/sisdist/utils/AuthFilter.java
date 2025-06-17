@@ -27,7 +27,7 @@ public class AuthFilter implements ContainerRequestFilter {
         LOGGER.info("Filtering request for path: " + path);
 
         // Solo proteger ciertos endpoints:
-        if (!path.contains("dialogue")) {
+        if (!path.contains("@")) {
             LOGGER.info("Ruta no protegida, se permite acceso sin autenticación.");
             return;
         }

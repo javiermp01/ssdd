@@ -1,7 +1,7 @@
 #!/bin/bash
 
 API_URL="http://localhost:8180/Service"
-EMAIL="holahola2@um.es"
+EMAIL="holahola2@test.es"
 PASSWORD="holahola2"
 NAME="holahola2"
 
