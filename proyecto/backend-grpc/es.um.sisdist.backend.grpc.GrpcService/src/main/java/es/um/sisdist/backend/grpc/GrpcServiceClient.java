@@ -59,6 +59,9 @@ public class GrpcServiceClient
 	private final ManagedChannel channel;
     private final GrpcServiceGrpc.GrpcServiceBlockingStub blockingStub;
 
+	private static final String DEFAULT_HOST = "backend-grpc";
+	private static final int DEFAULT_PORT = 50051;
+
     public GrpcServiceClient(String host, int port) {
         this.channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext() // Quitar si usas TLS
@@ -88,7 +91,7 @@ public class GrpcServiceClient
         }
     }
 
-    public int ping(String value) {
+    public int ping(int value) {
         PingRequest request = PingRequest.newBuilder().setV(value).build();
         PingResponse response = blockingStub.ping(request);
         return response.getV();
