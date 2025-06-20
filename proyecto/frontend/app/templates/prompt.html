@@ -2,161 +2,86 @@
 
 {% block content %}
 <style>
-  .container {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 0 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  input[type="text"] {
-    padding: 10px;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    outline: none;
-    transition: border-color 0.3s ease;
-  }
-  input[type="text"]:focus {
-    border-color: #007bff;
-  }
-  button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 12px;
-    font-size: 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  button:hover {
-    background-color: #0056b3;
-  }
-  #chat {
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 20px;
-    max-height: 400px;
-    overflow-y: auto;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
-  }
-  .message {
-    max-width: 75%;
-    margin-bottom: 15px;
-    padding: 10px 15px;
-    border-radius: 20px;
-    clear: both;
-  }
-  .message.user {
-    background-color: #007bff;
-    color: white;
-    float: right;
-    border-bottom-right-radius: 0;
-  }
-  .message.bot {
-    background-color: #e5e5ea;
-    color: #333;
-    float: left;
-    border-bottom-left-radius: 0;
-  }
-  #message-form {
-    display: flex;
-    gap: 10px;
-  }
-  #message {
-    flex-grow: 1;
-  }
+  /* estilos opcionales para mejorar apariencia */
 </style>
 
 <div class="container">
-  {% if not conversation %}
-    <h2>Crear nueva conversación</h2>
-    <form id="create-convo-form">
-      <input type="text" id="title" name="title" placeholder="Título de la conversación" required>
-      <button type="submit">Crear</button>
-    </form>
+  <h2 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+    Conversación: {{ conversation.name }}
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" style="width: 50px; height: 50px;">
+  </h2>
 
-    <script>
-      const form = document.getElementById('create-convo-form');
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const title = document.getElementById('title').value.trim();
-        if (!title) return alert('El título es obligatorio');
+  <div id="chat">
+    {% for msg in conversation.dialogue %}
+      <div class="message user">{{ msg.prompt }}</div>
+      <div class="message bot">{{ msg.response }}</div>
+    {% endfor %}
+  </div>
 
-        const res = await fetch('/prompt', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ title })
-        });
-
-        const data = await res.json();
-        if (data.conversation_name) {
-          window.location.href = `/prompt?conversation_name=${data.conversation_name}`;
-        } else if (data.error) {
-          alert('Error: ' + data.error);
-        }
-      });
-    </script>
-  {% else %}
-    <h2 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-      Conversación: {{ conversation.title }}
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" style="width: 50px; height: 50px;">
-    </h2>
-
-    <div id="chat">
-      {% for msg in conversation.messages %}
-        <div class="message user">{{ msg.user_message }}</div>
-        <div class="message bot">{{ msg.bot_response }}</div>
-      {% endfor %}
-    </div>
-
-    <form id="message-form">
-      <input type="text" id="message" autocomplete="off" placeholder="Escribe un mensaje..." required>
-      <button type="submit">Enviar</button>
-    </form>
-
-    <script>
-      const messageForm = document.getElementById('message-form');
-      messageForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const messageInput = document.getElementById('message');
-        const message = messageInput.value.trim();
-        if (!message) return;
-
-        const res = await fetch('/prompt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: message,
-            conversation_name: "{{ conversation.title }}"
-          })
-        });
-
-        const data = await res.json();
-        if (data.response) {
-          const chat = document.getElementById('chat');
-          chat.innerHTML += `<div class="message user">${message}</div><div class="message bot">${data.response}</div>`;
-          chat.scrollTop = chat.scrollHeight;
-          messageInput.value = '';
-          messageInput.focus();
-        } else if (data.error) {
-          alert('Error: ' + data.error);
-        }
-      });
-    </script>
-  {% endif %}
+  <form id="message-form">
+    <input type="text" id="message" autocomplete="off" placeholder="Escribe un mensaje..." required>
+    <button type="submit">Enviar</button>
+  </form>
 </div>
+
+<script>
+  const messageForm = document.getElementById('message-form');
+  messageForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const messageInput = document.getElementById('message');
+    const message = messageInput.value.trim();
+    if (!message) return;
+
+    const chat = document.getElementById('chat');
+
+    const userMessageDiv = document.createElement('div');
+    userMessageDiv.className = 'message user';
+    userMessageDiv.innerText = message;
+    chat.appendChild(userMessageDiv);
+
+    const botMessageDiv = document.createElement('div');
+    botMessageDiv.className = 'message bot';
+    botMessageDiv.innerText = '...';
+    chat.appendChild(botMessageDiv);
+
+    chat.scrollTop = chat.scrollHeight;
+    messageInput.value = '';
+    messageInput.disabled = true;
+    messageForm.querySelector('button').disabled = true;
+
+  const res = await fetch('/send_prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: message,
+      conversation_name: "{{ conversation.name }}"
+    })
+  });
+
+  let data = null;
+  const contentType = res.headers.get('Content-Type');
+
+  if (res.ok && contentType && contentType.includes('application/json')) {
+    data = await res.json();
+  }
+
+  if (res.ok && data) {
+    botMessageDiv.innerText = data.response || 'Respuesta recibida sin texto.';
+  } else if (data && data.error) {
+    botMessageDiv.innerText = 'Error: ' + data.error;
+  } else if (!res.ok) {
+    botMessageDiv.innerText = 'Error inesperado (' + res.status + ').';
+  } else {
+    botMessageDiv.innerText = 'Respuesta vacía del servidor.';
+  }
+
+
+
+    messageInput.disabled = false;
+    messageForm.querySelector('button').disabled = false;
+    messageInput.focus();
+    chat.scrollTop = chat.scrollHeight;
+  });
+</script>
 {% endblock %}
 

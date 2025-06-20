@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <h2>Crear nueva conversación</h2>
+  <form id="create-convo-form">
+    <input type="text" id="conversation_name" name="conversation_name" placeholder="Título de la conversación" required>
+    <button type="submit">Crear</button>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('create-convo-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const conversation_name = document.getElementById('conversation_name').value.trim();
+    if (!conversation_name) return alert('El título es obligatorio');
+
+    const res = await fetch('/prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversation_name })
+    });
+
+    const data = await res.json();
+    if (data.conversation_name) {
+      window.location.href = `/prompt?conversation_name=${data.conversation_name}`;
+    } else if (data.error) {
+      alert('Error: ' + data.error);
+    }
+  });
+</script>
+{% endblock %}
+

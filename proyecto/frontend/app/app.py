@@ -5,6 +5,7 @@ import os
 import uuid
 import logging
 import time
+from datetime import datetime
 
 # Usuarios
 from models import users, User, Conversation, conversations
@@ -13,6 +14,7 @@ from models import users, User, Conversation, conversations
 from forms import LoginForm, SignupForm, SettingsForm
 
 app = Flask(__name__, static_url_path='')
+#CORS(app)
 login_manager = LoginManager()
 login_manager.init_app(app) # Para mantener la sesión
 logging.basicConfig(
@@ -24,6 +26,7 @@ logging.basicConfig(
 # Python ofrece varias formas de almacenar esto de forma segura, que
 # no cubriremos aquí.
 app.config['SECRET_KEY'] = 'qH1vprMjavek52cv7Lmfe1FoCexrrV8egFnB21jHhkuOHm8hJUe1hwn7pKEZQ1fioUzDb3sWcNK1pJVVIhyrgvFiIrceXpKJBFIn_i9-LTLBCc4cqaI3gjJJHU6kxuT8bnC7Ng'
+backend_url = "http://backend-rest:8080"
 
 @app.route('/static/<path:path>')
 def serve_static(path):
@@ -185,16 +188,10 @@ def load_user(user_email):
     except Exception:
         return None
 
-from flask import render_template, redirect, url_for
-from flask_login import login_required, current_user
-import requests
-from datetime import datetime
-
 @app.route('/stats')
 @login_required
 def stats():
-    backend_url = "http://backend-rest:8080/Service"
-    r = requests.get(f"{backend_url}/u/{current_user.email}/statistics")
+    r = requests.get(f"{backend_url}/Service/u/{current_user.email}/statistics")
 
     if r.status_code == 200:
         data = r.json()
@@ -221,75 +218,116 @@ def stats():
     else:
         return render_template("stats.html", error="No se pudieron obtener las estadísticas")
 
-
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required
 def prompt():
-    backend_url = "http://backend-rest:8080/Service"
     if request.method == 'GET':
         conversation_name = request.args.get('conversation_name')
         if conversation_name:
-            # Recuperar conversación existente
-            r = requests.get(f"{backend_url}/u/{current_user.email}/dialogue/{conversation_name}")
+            r = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue/{conversation_name}")
             if r.status_code == 200:
-                conversation = r.json()
-                return render_template('prompt.html', conversation=conversation, current_page='prompt')
+                conv = r.json()
+                return render_template('prompt.html', conversation=conv, current_page='prompt')
             else:
                 flash('Conversación no encontrada.', 'danger')
-                return redirect(url_for('logs'))
+                return jsonify({'error': conversation_name}), 500
         else:
-            # Mostrar formulario para crear conversación (introducir título)
-            return render_template('prompt.html', conversation=None, current_page='prompt')
+            # Mostrar formulario para nueva conversación
+            return render_template('create_conv.html', current_page='prompt')
 
-    # POST
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No se recibieron datos'}), 400
+
+        conversation_name = data.get('conversation_name')
+        if not conversation_name:
+            return jsonify({'error': 'Falta el título para crear la conversación'}), 400
+
+        r = requests.post(f"{backend_url}/Service/u/{current_user.email}/dialogue", json={"name": conversation_name})
+        if r.status_code == 201:
+            return jsonify({'conversation_name': conversation_name}), 201
+        else:
+            return jsonify({'error': 'No se pudo crear la conversación'}), 400
+
+
+@app.route('/send_prompt', methods=['POST'])
+@login_required
+def send_prompt():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No se recibieron datos'}), 400
 
-    # Crear conversación nueva con título
-    title = data.get('title')
-    if title: 
-    	r = requests.post(f"{backend_url}/u/{current_user.email}/dialogue", json={"name": data['title']})
-        location = r.headers.get('Location')
-        if r.status_code == 201:
-            conv = r.json()
-            #return jsonify(conv)
-            session['conversation_name'] = title
-            session['nextUrl'] = conv.get('nextUrl')
-            session['endUrl'] = conv.get('endUrl')
-            return jsonify({'conversation_name': title})
-        else:
-            return jsonify({'error': 'No se recibieron datos'}), 400
-    # Añadir mensaje a conversación existente
     user_message = data.get('message')
-    nextUrl = session.get('nextUrl')
-    if not user_message:
-        return jsonify({'error': 'Faltan parámetros user_message'}), 400
-    if not nextUrl:
-        return jsonify({'error': 'Faltan parámetros nextUrl'}), 400
-        
-     # POST /u/{email}/dialogue/{name}/next/{nextToken}
+    conversation_name = data.get('conversation_name')
+
+    if not user_message or not conversation_name:
+        return jsonify({'error': 'Faltan parámetros requeridos'}), 400
+
+    r_conv = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue/{conversation_name}")
+    if r_conv.status_code != 200:
+        return jsonify({'error': 'Conversación no encontrada'}), 404
+
+    conv_data = r_conv.json()
+    next_url = conv_data.get('nextUrl')
+    if not next_url:
+        return jsonify({'error': 'No se encontró next URL'}), 400
+
     payload = {
         "prompt": user_message,
-        "timestamp": int(time.time() * 1000)  # epoch en milisegundos como espera el backend
+        "timestamp": int(time.time() * 1000)
     }
-    r = requests.post(f"{backend_url}{nextUrl}", json=payload)
-
-    if r.status_code == 202: #Estado READY
-        response = r.json()
-        return jsonify({'error': response}), 202
-    elif r.status_code == 204:
-        return jsonify({'error': 'La conversación no está en estado READY'}), 204
-    elif r.status_code == 400: #ARREGLAR Ocurre esto en el segundo prompt Token incorrecto
-        return jsonify({'error': nextUrl}), 400
-    elif r.status_code == 404:
-        return jsonify({'error': 'Conversación no encontrada',}), 404
-    else:
-        return jsonify({'error': 'Error desconocido al enviar prompt'}), 500
+    
+    try:
+        # POST inicial para enviar prompt
+        r = requests.post(f"{backend_url}/Service{next_url}", json=payload)
         
-    bot_response = f"Respuesta a: {user_message}"
+        if r.status_code == 102:
+            return jsonify({"error": "Backend aún no está listo"}), 503
+        
+        elif r.status_code == 202:
+            location_url = r.headers.get('Location')
+            if not location_url:
+                return jsonify({"error": "No se recibió Location para polling"}), 500
 
-    return jsonify({'response': bot_response, 'conversation_name': conversation_name})
+            # Polling haciendo GET a location_url
+            for _ in range(10):  # 10 intentos, 1 segundo de espera cada uno
+                time.sleep(1)
+                poll_response = requests.get(f"{location_url}")
+                
+                if poll_response.status_code == 200:
+                    result = poll_response.json()
+                    if result.get("status") == "READY":
+                            dialogue = result.get("dialogue", [])
+                            if dialogue:
+                                last_entry = dialogue[-1]
+                                return jsonify({
+                                    "response": last_entry.get("response", "Sin respuesta")
+                                }), 200
+                            else:
+                                return jsonify({"error": "Diálogo vacío"}), 500
+                    else:
+                        continue # No listo aún, seguir esperando
+                
+                elif poll_response.status_code == 404:
+                    return jsonify({'error': 'Conversación no encontrada durante polling'}), 404
+                
+                else:
+                    return jsonify({"error": f"Error inesperado durante polling: {poll_response.status_code}"}), 500
+            
+            return jsonify({"error": "Timeout esperando respuesta"}), 504
+        
+        elif r.status_code == 400:
+            return jsonify({'error': 'Token incorrecto o solicitud inválida'}), 400
+        
+        elif r.status_code == 404:
+            return jsonify({'error': 'Conversación no encontrada'}), 404
+        
+        else:
+            return jsonify({"error": f"Error al enviar prompt, status {next_url}"}), r.status_code
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/end_conversation', methods=['POST'])
@@ -301,16 +339,14 @@ def end_conversation():
 @app.route('/logs')
 @login_required
 def logs():
-    backend_url = "http://backend-rest:8080/Service"
-    
     # Llamar al endpoint REST para obtener los logs del usuario
-    r = requests.get(f"{backend_url}/u/{current_user.email}/dialogue/logs")
-    #ARREGLAR ahora mismo r está vacío
+    r = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue/logs")
+    #ARREGLAR
     if r.status_code == 200:
         # return jsonify({'error': r.json()}), 500 
         user_conversations = r.json()  
         # Ordenar por timestamp descendente (si no vienen ya ordenados)
-        user_conversations.sort(key=lambda c: c.get('timestamp', ''), reverse=True)
+        #user_conversations.sort(key=lambda c: c.get('timestamp', ''), reverse=True)
         return render_template('logs.html', conversations=user_conversations, current_page='logs')
     else:
         return jsonify({'error': 'Conversaciones no encontradas'}), 404 
