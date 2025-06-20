@@ -122,7 +122,7 @@ done
 RESPONSE_TEXT=$(echo "$response" | jq -r ".dialogue[] | select(.prompt == \"$PROMPT\") | .response")
 echo "[*] Respuesta recibida: $RESPONSE_TEXT"
 
-# Paso 6: POST a endUrl
+# Paso 7: POST a endUrl
 END_URL=$(echo "$response" | jq -r '.endUrl')
 if [[ "$END_URL" != "null" && -n "$END_URL" ]]; then
   FULL_END_URL="$API_URL$END_URL"
@@ -137,7 +137,7 @@ else
   echo "[!] endUrl no encontrado."
 fi
 
-# Paso 7: Obtener estadísticas
+# Paso 8: Obtener estadísticas
 STATS_URL="$API_URL/u/$EMAIL/statistics"
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 STATS_AUTH_TOKEN=$(echo -n "$STATS_URL$NOW$PRIVATE_TOKEN" | md5sum | awk '{print $1}')
@@ -147,7 +147,7 @@ curl -s -X GET "$STATS_URL" \
   -H "Date: $NOW" \
   -H "Auth-Token: $STATS_AUTH_TOKEN" | jq
 
-# Paso 8: Obtener logs
+# Paso 9: Obtener logs
 LOGS_URL="$API_URL/u/$EMAIL/dialogue/logs"
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 LOGS_AUTH_TOKEN=$(echo -n "$LOGS_URL$NOW$PRIVATE_TOKEN" | md5sum | awk '{print $1}')
@@ -159,7 +159,7 @@ logs_response=$(curl -s -X GET "$LOGS_URL" \
 echo "[*] Logs de conversaciones:"
 echo "$logs_response" | jq
 
-# Paso 9: Eliminar conversación si existe
+# Paso 10: Eliminar conversación si existe
 CONV_NAME=$(echo "$logs_response" | jq -r '.[0].name')
 if [[ -n "$CONV_NAME" && "$CONV_NAME" != "null" ]]; then
   DELETE_LOG_URL="$API_URL/u/$EMAIL/dialogue/logs/$CONV_NAME"
@@ -175,7 +175,7 @@ else
   echo "[!] No se encontró conversación para eliminar."
 fi
 
-# Paso 7: Borrar usuario con DELETE a /Service/u/email
+# Paso 11: Borrar usuario con DELETE a /Service/u/email
 DELETE_URL="$API_URL/u/$EMAIL"
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 DELETE_AUTH_TOKEN=$(echo -n "$DELETE_URL$NOW$PRIVATE_TOKEN" | md5sum | awk '{print $1}')
