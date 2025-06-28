@@ -1,7 +1,51 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<style>
+  .centered-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+  }
+
+  #create-convo-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 20px;
+  }
+
+  #create-convo-form input[type="text"] {
+    padding: 10px;
+    font-size: 16px;
+    width: 100%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+
+  #create-convo-form button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  #create-convo-form button:hover {
+    background-color: #2980b9;
+  }
+</style>
+
+<div class="container centered-container">
   <h2>Crear nueva conversación</h2>
   <form id="create-convo-form">
     <input type="text" id="conversation_name" name="conversation_name" placeholder="Título de la conversación" required>
