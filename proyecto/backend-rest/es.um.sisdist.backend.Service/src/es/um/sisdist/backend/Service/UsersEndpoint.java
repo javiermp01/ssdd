@@ -65,4 +65,23 @@ public class UsersEndpoint {
         }
         return Response.ok(statsOpt.get()).build();
     }
+
+    @GET
+    @Path("/{username}/logs")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAllLogs(@PathParam("username") String username) {
+        var logs = impl.getAllConversationLogsByEmail(username);
+        return Response.ok(logs).build();
+    }
+
+    @DELETE
+    @Path("/{username}/logs/{dialogueId}")
+    public Response deleteLog(@PathParam("dialogueId") String dialogueId) {
+        boolean deleted = impl.deleteConversationLog(dialogueId);
+        if (deleted) {
+            return Response.ok().build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).entity("Log not found").build();
+        }
+    }
 }

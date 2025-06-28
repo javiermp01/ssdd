@@ -147,7 +147,7 @@ public class TestClient {
         System.out.println("Conversaciones:\n" + prettyPrintJSON(convListStr));
 
         // 5. Obtener logs
-        Response logsResp = client.target(baseUrl + "/u/" + email + "/dialogue/logs")
+        Response logsResp = client.target(baseUrl + "/u/" + email + "/logs")
                 .request(MediaType.APPLICATION_JSON)
                 .get();
         String logsStr = logsResp.readEntity(String.class);
@@ -158,7 +158,7 @@ public class TestClient {
             JSONArray logsArr = new JSONArray(logsStr);
             if (logsArr.length() > 0) {
                 String name = logsArr.getJSONObject(0).getString("name");
-                Response del = client.target(baseUrl + "/u/" + email + "/dialogue/logs/" + name)
+                Response del = client.target(baseUrl + "/u/" + email + "/logs/" + name)
                         .request().delete();
                 String delStr = del.readEntity(String.class);
                 System.out.println("Eliminar conversación: " + colorStatus(del.getStatus()) + "\n" + delStr);

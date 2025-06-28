@@ -148,7 +148,7 @@ curl -s -X GET "$STATS_URL" \
   -H "Auth-Token: $STATS_AUTH_TOKEN" | jq
 
 # Paso 9: Obtener logs
-LOGS_URL="$API_URL/u/$EMAIL/dialogue/logs"
+LOGS_URL="$API_URL/u/$EMAIL/logs"
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 LOGS_AUTH_TOKEN=$(echo -n "$LOGS_URL$NOW$PRIVATE_TOKEN" | md5sum | awk '{print $1}')
 logs_response=$(curl -s -X GET "$LOGS_URL" \
@@ -162,7 +162,7 @@ echo "$logs_response" | jq
 # Paso 10: Eliminar conversación si existe
 CONV_NAME=$(echo "$logs_response" | jq -r '.[0].name')
 if [[ -n "$CONV_NAME" && "$CONV_NAME" != "null" ]]; then
-  DELETE_LOG_URL="$API_URL/u/$EMAIL/dialogue/logs/$CONV_NAME"
+  DELETE_LOG_URL="$API_URL/u/$EMAIL/logs/$CONV_NAME"
   NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   DEL_LOG_AUTH_TOKEN=$(echo -n "$DELETE_LOG_URL$NOW$PRIVATE_TOKEN" | md5sum | awk '{print $1}')
   echo "[*] Eliminando conversación '$CONV_NAME'..."

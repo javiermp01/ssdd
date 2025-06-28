@@ -123,25 +123,6 @@ public class ConversationsEndpoint {
                 .header("Location", location)
                 .build();
     }
-
-    @GET
-    @Path("/logs/showAll")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getAllLogs(@PathParam("email") String email) {
-        var logs = impl.getAllConversationLogsByEmail(email);
-        return Response.ok(logs).build();
-    }
-
-    @DELETE
-    @Path("/logs/delete/{dialogueId}")
-    public Response deleteLog(@PathParam("dialogueId") String dialogueId) {
-        boolean deleted = impl.deleteConversationLog(dialogueId);
-        if (deleted) {
-            return Response.ok().build();
-        } else {
-            return Response.status(Response.Status.NOT_FOUND).entity("Log not found").build();
-        }
-    }
     /**
      * @GET
      *      @Path("/{dialogueId}")

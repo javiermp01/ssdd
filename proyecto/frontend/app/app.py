@@ -414,7 +414,7 @@ def delete_conversation():
         return redirect(url_for('logs')) 
     
     # Llamar al endpoint REST DELETE para eliminar la conversación
-    r = requests.delete(f"{backend_url}/Service/u/{current_user.email}/dialogue/logs/delete/{conversation_name}")
+    r = requests.delete(f"{backend_url}/Service/u/{current_user.email}/logs/{conversation_name}")
 
     if r.status_code == 200:
         flash("Conversación eliminada correctamente.", "success")

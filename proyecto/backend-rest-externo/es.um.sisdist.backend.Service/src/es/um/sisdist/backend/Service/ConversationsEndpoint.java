@@ -123,49 +123,4 @@ public class ConversationsEndpoint {
                 .header("Location", location)
                 .build();
     }
-
-    @GET
-    @Path("/logs")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getAllLogs(@PathParam("email") String email) {
-        var logs = impl.getAllConversationLogsByEmail(email);
-        return Response.ok(logs).build();
-    }
-
-    @DELETE
-    @Path("/logs/{dialogueId}")
-    public Response deleteLog(@PathParam("dialogueId") String dialogueId) {
-        boolean deleted = impl.deleteConversationLog(dialogueId);
-        if (deleted) {
-            return Response.ok().build();
-        } else {
-            return Response.status(Response.Status.NOT_FOUND).entity("Log not found").build();
-        }
-    }
-    /**
-     * @GET
-     *      @Path("/{dialogueId}")
-     *      public Response getConversation(@PathParam("userId") String
-     *      userId, @PathParam("dialogueId") String dialogueId) { ... }
-     * 
-     * @POST
-     *       @Path("/{dialogueId}/next/{nextToken}")
-     *       public Response sendPrompt(@PathParam("userId") String
-     *       userId, @PathParam("dialogueId") String
-     *       dialogueId, @PathParam("nextToken") String nextToken, PromptDTO prompt)
-     *       { ... }
-     * 
-     * @POST
-     *       @Path("/{dialogueId}/end")
-     *       public Response endConversation(@PathParam("userId") String
-     *       userId, @PathParam("dialogueId") String dialogueId) {
-     *       boolean ended = true;//impl.endConversation(userId, dialogueId);
-     *       if (ended) {
-     *       return Response.ok().build();
-     *       } else {
-     *       return Response.status(Response.Status.NOT_FOUND).entity("Conversation
-     *       not found").build();
-     *       }
-     *       }
-     */
 }
