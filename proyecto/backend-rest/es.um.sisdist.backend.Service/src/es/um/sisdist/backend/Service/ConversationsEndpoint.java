@@ -125,7 +125,7 @@ public class ConversationsEndpoint {
     }
 
     @GET
-    @Path("/logs")
+    @Path("/logs/showAll")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAllLogs(@PathParam("email") String email) {
         var logs = impl.getAllConversationLogsByEmail(email);
@@ -133,7 +133,7 @@ public class ConversationsEndpoint {
     }
 
     @DELETE
-    @Path("/logs/{dialogueId}")
+    @Path("/logs/delete/{dialogueId}")
     public Response deleteLog(@PathParam("dialogueId") String dialogueId) {
         boolean deleted = impl.deleteConversationLog(dialogueId);
         if (deleted) {

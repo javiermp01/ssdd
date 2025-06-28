@@ -39,16 +39,10 @@ class Conversation:
         self.user_id = user_id
         self.messages = []
         self.timestamp = datetime.now()
-        self.title = title
-
-    def add_message(self, user_message, bot_response):
-        self.messages.append(Message(user_message, bot_response))
+        self.name = name
     
     def __repr__(self):
         return f'<Conversation {self.id} - User {self.user_id} - {self.timestamp}>'
-
-    #def get_messages(self):
-    #    return [m for m in messages if m.conversation_id == self.id]
 
 
 class Message:

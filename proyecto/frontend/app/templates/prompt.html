@@ -3,12 +3,26 @@
 {% block content %}
 <style>
   /* estilos opcionales para mejorar apariencia */
+  #end-convo-btn {
+    margin-left: 20px;
+    padding: 5px 10px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #end-convo-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
 </style>
 
 <div class="container">
   <h2 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
     Conversación: {{ conversation.name }}
     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsn57asB4OkOUsx4sCuJhkwtzC9oCaJnNV4Q&s" alt="Llama" style="width: 50px; height: 50px;">
+    <button id="end-convo-btn" title="Terminar conversación">Finalizar</button>
   </h2>
 
   <div id="chat">
@@ -26,6 +40,8 @@
 
 <script>
   const messageForm = document.getElementById('message-form');
+  const endConvoBtn = document.getElementById('end-convo-btn');
+  
   messageForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const messageInput = document.getElementById('message');
@@ -48,39 +64,63 @@
     messageInput.value = '';
     messageInput.disabled = true;
     messageForm.querySelector('button').disabled = true;
+    endConvoBtn.disabled = true;  // opcional: deshabilitar botón mientras espera respuesta
 
-  const res = await fetch('/send_prompt', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: message,
-      conversation_name: "{{ conversation.name }}"
-    })
-  });
+    const res = await fetch('/send_prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: message,
+        conversation_name: "{{ conversation.name }}"
+      })
+    });
 
-  let data = null;
-  const contentType = res.headers.get('Content-Type');
+    let data = null;
+    const contentType = res.headers.get('Content-Type');
 
-  if (res.ok && contentType && contentType.includes('application/json')) {
-    data = await res.json();
-  }
+    if (res.ok && contentType && contentType.includes('application/json')) {
+      data = await res.json();
+    }
 
-  if (res.ok && data) {
-    botMessageDiv.innerText = data.response || 'Respuesta recibida sin texto.';
-  } else if (data && data.error) {
-    botMessageDiv.innerText = 'Error: ' + data.error;
-  } else if (!res.ok) {
-    botMessageDiv.innerText = 'Error inesperado (' + res.status + ').';
-  } else {
-    botMessageDiv.innerText = 'Respuesta vacía del servidor.';
-  }
-
-
+    if (res.ok && data) {
+      botMessageDiv.innerText = data.response || 'Respuesta recibida sin texto.';
+    } else if (data && data.error) {
+      botMessageDiv.innerText = 'Error: ' + data.error;
+    } else if (!res.ok) {
+      botMessageDiv.innerText = 'Error inesperado (' + res.status + '). Inténtalo de nuevo.';
+    } else {
+      botMessageDiv.innerText = 'Respuesta vacía del servidor.';
+    }
 
     messageInput.disabled = false;
     messageForm.querySelector('button').disabled = false;
+    endConvoBtn.disabled = false;
     messageInput.focus();
     chat.scrollTop = chat.scrollHeight;
+  });
+
+  endConvoBtn.addEventListener('click', async () => {
+    if (!confirm('¿Estás seguro de que quieres finalizar esta conversación?')) return;
+
+    endConvoBtn.disabled = true;
+
+    const res = await fetch(`/end_conversation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_name: "{{ conversation.name }}"
+      })
+    });
+
+    if (res.ok) {
+      alert('Conversación finalizada correctamente.');
+      // Opcional: redirigir a lista de conversaciones o refrescar página
+      window.location.href = '/logs';
+    } else {
+      let errorText = await res.text();
+      alert('Error al finalizar la conversación: ' + errorText);
+      endConvoBtn.disabled = false;
+    }
   });
 </script>
 {% endblock %}

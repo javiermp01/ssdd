@@ -14,7 +14,6 @@ from models import users, User, Conversation, conversations
 from forms import LoginForm, SignupForm, SettingsForm
 
 app = Flask(__name__, static_url_path='')
-#CORS(app)
 login_manager = LoginManager()
 login_manager.init_app(app) # Para mantener la sesión
 logging.basicConfig(
@@ -218,9 +217,23 @@ def stats():
     else:
         return render_template("stats.html", error="No se pudieron obtener las estadísticas")
 
+def is_name_used(new_name):
+    # Obtener nombres de las conversaciones
+    r = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue")
+    if r.status_code != 200:
+        return jsonify({'error': "Hubo un problema obteniendo las conversaciones"}), 404
+
+    conversation_names = r.json()
+    
+    for name in conversation_names:
+        if name == new_name:
+            return True
+    return False
+
 @app.route('/prompt', methods=['GET', 'POST'])
 @login_required
 def prompt():
+    #Cargar conversación si existe o lanzar formulario de creación
     if request.method == 'GET':
         conversation_name = request.args.get('conversation_name')
         if conversation_name:
@@ -234,7 +247,7 @@ def prompt():
         else:
             # Mostrar formulario para nueva conversación
             return render_template('create_conv.html', current_page='prompt')
-
+    #Crear conversación
     elif request.method == 'POST':
         data = request.get_json()
         if not data:
@@ -243,13 +256,15 @@ def prompt():
         conversation_name = data.get('conversation_name')
         if not conversation_name:
             return jsonify({'error': 'Falta el título para crear la conversación'}), 400
-
+            
+        if is_name_used(conversation_name):  
+            return jsonify({'error': 'Ese nombre ya está en uso'}), 409
+            
         r = requests.post(f"{backend_url}/Service/u/{current_user.email}/dialogue", json={"name": conversation_name})
         if r.status_code == 201:
             return jsonify({'conversation_name': conversation_name}), 201
         else:
             return jsonify({'error': 'No se pudo crear la conversación'}), 400
-
 
 @app.route('/send_prompt', methods=['POST'])
 @login_required
@@ -291,7 +306,7 @@ def send_prompt():
                 return jsonify({"error": "No se recibió Location para polling"}), 500
 
             # Polling haciendo GET a location_url
-            for _ in range(10):  # 10 intentos, 1 segundo de espera cada uno
+            for _ in range(15):  # 10 intentos, 1 segundo de espera cada uno
                 time.sleep(1)
                 poll_response = requests.get(f"{location_url}")
                 
@@ -333,61 +348,82 @@ def send_prompt():
 @app.route('/end_conversation', methods=['POST'])
 @login_required
 def end_conversation():
-    session.pop('conversation_id', None)
-    return redirect(url_for('prompt'))
+    data = request.get_json()
+    conversation_name = data.get('conversation_name') if data else None
+    if not conversation_name:
+        return jsonify({"error": "No se proporcionó el nombre de la conversación"}), 400
 
-@app.route('/logs')
+    url = f"{backend_url}/Service/u/{current_user.email}/dialogue/{conversation_name}/end"
+    try:
+        res = requests.post(url)
+        if res.status_code == 200:
+            return jsonify({"message": "Conversación finalizada correctamente"}), 200
+        elif res.status_code == 404:
+            return jsonify({"error": f"{backend_url}/Service/u/{current_user.email}/dialogue/{conversation_name}/end"}), res.status_code
+        elif res.status_code == 204:
+            return jsonify({"error": "La conversación está en estado READY."}), res.status_code
+        elif res.status_code == 400:
+            return jsonify({"error": "No se puede finalizar la conversación."}), res.status_code
+        else:
+            return jsonify({"error": "No se pudo finalizar la conversación"}), res.status_code
+    except requests.exceptions.RequestException as e:
+        flash(f"Error de conexión: {e}", "danger")
+        
+@app.route('/logs', methods=['GET'])
 @login_required
 def logs():
-    # Llamar al endpoint REST para obtener los logs del usuario
-    r = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue/logs")
-    #ARREGLAR
-    if r.status_code == 200:
-        # return jsonify({'error': r.json()}), 500 
-        user_conversations = r.json()  
-        # Ordenar por timestamp descendente (si no vienen ya ordenados)
-        #user_conversations.sort(key=lambda c: c.get('timestamp', ''), reverse=True)
-        return render_template('logs.html', conversations=user_conversations, current_page='logs')
-    else:
-        return jsonify({'error': 'Conversaciones no encontradas'}), 404 
+    # Obtener nombres de las conversaciones
+    r = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue")
+    if r.status_code != 200:
+        return jsonify({'error': "Hubo un problema obteniendo las conversaciones"}), 404
 
+    conversation_names = r.json()
+    user_conversations = []
+
+    # Obtener detalles de cada conversación
+    for name in conversation_names:
+        r_conv = requests.get(f"{backend_url}/Service/u/{current_user.email}/dialogue/{name}")
+        if r_conv.status_code == 200:
+            convo_data = r_conv.json()
+            created_at = convo_data.get("createdAt")
+
+            # Convertir timestamp a fecha legible
+            if created_at:
+                dt = datetime.fromtimestamp(created_at / 1000)
+                created_at_str = dt.strftime("%Y-%m-%d")
+            else:
+                created_at_str = "Desconocida"
+
+            user_conversations.append({
+                "name": name,
+                "created_at": created_at,
+                "created_at_str": created_at_str
+            })
+
+    # Ordenar por timestamp
+    user_conversations.sort(key=lambda c: c.get('created_at', 0), reverse=True)
+
+    return render_template('logs.html', conversations=user_conversations, current_page='logs')
 
 @app.route('/delete_conversation', methods=['POST'])
 @login_required
 def delete_conversation():
-    conversation_id = request.form.get('conversation_id')
-    if not conversation_id:
-        flash("ID de conversación no proporcionado.", "danger")
-        return redirect(url_for('logs'))
+    conversation_name = request.form.get('conversation_name')
+    if not conversation_name:
+        flash("Nombre de conversación no proporcionado.", "danger")
+        return redirect(url_for('logs')) 
+    
+    # Llamar al endpoint REST DELETE para eliminar la conversación
+    r = requests.delete(f"{backend_url}/Service/u/{current_user.email}/dialogue/logs/delete/{conversation_name}")
 
-    # Buscar conversación del usuario
-    conversation = next((c for c in conversations if c.id == conversation_id and c.user_id == current_user.id), None)
-    if not conversation:
-        flash("Conversación no encontrada o sin permiso para eliminar.", "danger")
-        return redirect(url_for('logs'))
+    if r.status_code == 200:
+        flash("Conversación eliminada correctamente.", "success")
+    elif r.status_code == 404:
+        flash("Conversación no encontrada.", "warning")
+    else:
+        flash(f"Error al eliminar la conversación: {r.status_code}", "danger")
 
-    # Eliminar la conversación de la lista (o la base de datos si usas DB)
-    conversations.remove(conversation)
-    flash("Conversación eliminada correctamente.", "success")
     return redirect(url_for('logs'))
-
-#NO SE USA
-@app.route('/continue_conversation', methods=['GET'])
-@login_required
-def continue_conversation():
-    conversation_id = request.args.get('conversation_id')
-    if not conversation_id:
-        flash("No se especificó conversación.", "warning")
-        return redirect(url_for('logs'))  # O a la página de historial
-
-    # Aquí podrías verificar que la conversación exista y pertenezca al usuario
-    convo = Conversation.query.filter_by(id=conversation_id, user_id=current_user.id).first()
-    if not convo:
-        flash("Conversación no encontrada o no tienes permiso.", "danger")
-        return redirect(url_for('logs'))
-
-    # Redirigir al prompt para esa conversación
-    return redirect(url_for('prompt', conversation_id=conversation_id))
 
 @app.route('/privacy', methods=['GET'])
 def privacy():
