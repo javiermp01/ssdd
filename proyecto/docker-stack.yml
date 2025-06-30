@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+
+  ssdd-frontend:
+    image: ssdd-frontend
+    ports:
+      - 5010:5010
+    env_file: sql.env
+    environment:
+      - FLASK_APP=app/app.py
+      - FLASK_DEBUG=true
+      - PORT=5010
+    volumes:
+      - ./frontend:/ssdd-frontend
+    deploy:
+      replicas: 1
+
+  ssdd-llamachat:
+    image: dsevilla/ssdd-llamachat:1.0
+    ports:
+      - 5020:5020
+    deploy:
+      replicas: 1
+
+  ssdd-llamachat-dummy:
+    image: dsevilla/ssdd-llamachat-dummy:1.0
+    ports:
+      - 5021:5020
+    deploy:
+      replicas: 1
+
+  db-mysql:
+    image: ssdd-db-mysql
+    ports:
+      - 3306:3306
+    env_file: sql.env
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1' | mysql -h localhost -u root -p$$MYSQL_ROOT_PASSWORD $$MYSQL_DATABASE"]
+      interval: 10s
+      timeout: 10s
+      retries: 7
+      start_period: 20s
+    deploy:
+      replicas: 1
+
+  backend-rest:
+    image: ssdd-backend-rest
+    ports:
+      - 8080:8080
+    env_file: sql.env
+    deploy:
+      replicas: 1
+
+  backend-rest-externo:
+    image: ssdd-backend-rest-externo
+    ports:
+      - 8180:8080
+    env_file: sql.env
+    deploy:
+      replicas: 1
+
+  backend-grpc:
+    image: ssdd-backend-grpc
+    ports:
+      - 50051:50051
+    env_file: sql.env
+    deploy:
+      replicas: 1
